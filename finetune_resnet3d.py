@@ -30,43 +30,10 @@ LR = 0.001
 MOMENTUM = 0.9
 LR_DECAY_EPOCH = 5
 CLASS_NUM = 101
-BATCH_SIZE = 4
-MEAN = [0, 0, 0]  # [101, 97, 90]
-STD = [1, 1, 1]
-SCALE_SIZE = 240
-CROP_SIZE = 112
-# for tensorboard
+BATCH_SIZE = 32
+EPOCH_SAVE = 2
+# for tensorboard --logdir runs
 configure("runs/run-1234")
-
-
-def imshow(inp, title=None):
-    """Image show for Tensor."""
-    inp = inp.numpy().transpose((1, 2, 0))
-    mean = np.array(MEAN)
-    std = np.array(STD)
-    inp = std * inp + mean
-    plt.imshow(inp)
-    if title is not None:
-        plt.title(title)
-    plt.pause(0.5)  # pause a bit so that plots are updated
-
-
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.Scale(SCALE_SIZE),
-        transforms.RandomCrop(CROP_SIZE),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        # mean std
-        transforms.Normalize(MEAN, STD)
-    ]),
-    'val': transforms.Compose([
-        transforms.Scale(SCALE_SIZE),
-        transforms.CenterCrop(CROP_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(MEAN, STD)
-    ]),
-}
 
 # Date reading, setting for batch size, whether shuffle, num_workers
 data_dir = '/home/sl/Resource/UCF/'
@@ -77,20 +44,14 @@ data_set_loaders = {x: torch.utils.data.DataLoader(data_set[x], batch_size=BATCH
 data_set_sizes = {x: len(data_set[x]) for x in ['train', 'val']}
 data_set_classes = data_set['train'].classes
 
-# Get a batch of training data and show
-# clip, classes = next(iter(data_set_loaders['train']))[0]
-# out = torchvision.utils.make_grid(clip[0])
-# plt.figure('train data')
-# imshow(out, title=[data_set_classes[x] for x in classes])
-
 use_gpu = torch.cuda.is_available()
 
 
 def train_model(model, criterion, optimizer, lr_scheduler, num_epochs=NUM_EPOCHES):
-    since = time.time()
     best_model = model
     best_acc = 0.0
     for epoch in range(num_epochs):
+        since = time.time()
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
         # Each epoch has a training and validation phase
@@ -119,7 +80,7 @@ def train_model(model, criterion, optimizer, lr_scheduler, num_epochs=NUM_EPOCHE
 
                 # forward
                 if use_gpu:
-                    net = torch.nn.DataParallel(model, device_ids=[0])
+                    net = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3, 4, 5, 6, 7])
                     outputs = net(inputs.float())
                 else:
                     outputs = model(inputs.float())
@@ -142,26 +103,28 @@ def train_model(model, criterion, optimizer, lr_scheduler, num_epochs=NUM_EPOCHE
                     step += 1
                     log_value('train_loss', ls, step)
                     log_value('train_acc', acc, step)
-                    print('train step: {}, loss {}, acc {}'.format(step, ls, acc))
+                    print('train step: {}, loss {:.4f}, acc {:.4f}'.format(step, ls, acc))
                 else:
                     log_value('val_loss', ls, step)
                     log_value('val_acc', acc, step)
-                    print('val step: {}, loss {}, acc {}'.format(step, ls, acc))
+                    print('val step: {}, loss {:.4f}, acc {:.4f}'.format(step, ls, acc))
 
             epoch_loss = running_loss / data_set_sizes[phase]
             epoch_acc = running_corrects / data_set_sizes[phase]
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                phase, epoch_loss, epoch_acc))
+            print('Epoch: {} Loss: {:.4f} Acc: {:.4f}'.format(
+                epoch, epoch_loss, epoch_acc))
 
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model = copy.deepcopy(model)
 
-    time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(
-        time_elapsed // 60, time_elapsed % 60))
+        time_elapsed = time.time() - since
+        print('Epoch time: {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+        if epoch % EPOCH_SAVE == 0 and epoch != 0:
+            torch.save(model_conv.state_dict(), 'resnet3d_finetuning_18_'+str(EPOCH_SAVE)+'.state')
+
     print('Best val Acc: {:4f}'.format(best_acc))
     return best_model
 
@@ -194,8 +157,6 @@ entropy_loss = nn.CrossEntropyLoss()
 
 optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=LR, momentum=MOMENTUM)
 model_conv = train_model(model_conv, entropy_loss, optimizer_conv, exp_lr_scheduler, num_epochs=NUM_EPOCHES)
-
-torch.save(model_conv.state_dict(), 'resnet3d_finetuning_18.state')
 
 # store labels
 label_file = open('classes.txt', 'w')

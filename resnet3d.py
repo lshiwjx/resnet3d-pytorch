@@ -15,12 +15,6 @@ model_urls = {
 }
 
 
-def conv3x3(in_planes, out_planes, stride=1):
-    "3x3 convolution with padding"
-    return nn.Conv3d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
-
-
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -128,8 +122,7 @@ class ResNet3d(nn.Module):
                 #           kernel_size=1, stride=stride, bias=False),
                 # nn.BatchNorm3d(planes * block.expansion),
             )
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))

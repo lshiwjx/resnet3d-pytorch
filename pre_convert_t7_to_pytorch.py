@@ -1,7 +1,6 @@
 import torch
 from resnet3d import resnet18
 import torchvision
-from torch.autograd import Variable
 from torch.utils.serialization import load_lua
 
 torchvision.models.resnet18()
