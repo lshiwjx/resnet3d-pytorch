@@ -46,7 +46,10 @@ def make_dataset(dir, class_to_idx):
                     path = os.path.join(imgs, img)
                     item = (path, class_to_idx[cls])
                     clip.append(item)
-            clips.append(clip)
+            if len(clip) == 0 :
+                print('dir is empty: ', imgs)
+            else:
+                clips.append(clip)
     return clips
 
 
@@ -92,24 +95,28 @@ class UCFImageFolder(data.Dataset):
         random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(CLIP_LENGTH)])
         clip = []
         label = 0
+        # pre processions are same for a clip
+        start_train = [random.randint(0, RESIZE_SHAPE[j] - CROP_SHAPE[j]) for j in range(2)]
+        start_val = [(RESIZE_SHAPE[j] - CROP_SHAPE[j]) // 2 for j in range(2)]
+        tmp = random.randint(0, 2)
         for i in random_list:
             path, label = paths[i]
             # img = Image.open(path)
             img = skimage.data.imread(path)
             if self.is_train:
-                img = skimage.transform.resize(img, RESIZE_SHAPE)
-                start = [random.randint(0, RESIZE_SHAPE[j] - CROP_SHAPE[j]) for j in range(2)]
-                img = img[start[0]:start[0] + CROP_SHAPE[0], start[1]:start[1] + CROP_SHAPE[1], :]
-                tmp = random.randint(0, 2)
+                img = skimage.transform.resize(img, RESIZE_SHAPE, mode='reflect')
+
+                img = img[start_train[0]:start_train[0] + CROP_SHAPE[0], start_train[1]:start_train[1] + CROP_SHAPE[1], :]
                 if tmp == 0:
                     img = img[:, ::-1, :]
                 elif tmp == 1:
                     img = img[::-1, :, :]
+                else:
+                    pass
                 img -= MEAN
             else:
-                img = skimage.transform.resize(img, RESIZE_SHAPE)
-                start = [(RESIZE_SHAPE[j] - CROP_SHAPE[j]) / 2 for j in range(2)]
-                img = img[start[0]:start[0] + CROP_SHAPE[0], start[1]:start[1] + CROP_SHAPE[1], :]
+                img = skimage.transform.resize(img, RESIZE_SHAPE, mode='reflect')
+                img = img[start_val[0]:start_val[0] + CROP_SHAPE[0], start_val[1]:start_val[1] + CROP_SHAPE[1], :]
                 img -= MEAN
             clip.append(img)
         clip = np.array(clip)

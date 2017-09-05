@@ -2,7 +2,7 @@ import os
 import shutil
 import random
 
-data_dir = '/home/sl/Resource/UCF/'
+data_dir = '/home/lshi/Database/UCF-101/'
 
 classes = sorted(os.listdir(data_dir))
 os.chdir(data_dir)
