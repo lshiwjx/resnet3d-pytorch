@@ -22,7 +22,6 @@ import train_val_model
 
 # params
 LR = 0.001
-MOMENTUM = 0.9
 LR_DECAY_RATIO = 0.1
 NUM_EPOCH = 20
 NUM_EPOCH_SAVE_MODEL = 2
@@ -30,8 +29,8 @@ CLASS_NUM = 101
 BATCH_SIZE = 256
 DEVICE_ID = [0, 1, 2, 3, 4, 5, 6, 7]
 LOG_DIR = "runs/test"
-LAST_MODEL = 'resnet3d-finetuning-18_1000.state'
-USE_LAST_MODEL = False
+LAST_MODEL = 'resnet3d-finetuning-18_0.state'
+USE_LAST_MODEL = True
 ONLY_TRAIN_CLASSIFIER = False
 
 # for tensorboard --logdir runs
@@ -47,15 +46,18 @@ data_set_loaders = {x: torch.utils.data.DataLoader(data_set[x], batch_size=BATCH
                                                    num_workers=50, drop_last=False) for x in ['train', 'val']}
 
 data_set_classes = data_set['train'].classes
-util.write_class_txt(data_set_classes)
+# util.write_class_txt(data_set_classes)
 
 # show examples of input
+print('show examples of input')
 util.batch_show(data_set_loaders, data_set_classes)
 util.clip_show(data_set_loaders, data_set_classes)
 
 use_gpu = torch.cuda.is_available()
+print('use gpu? ', use_gpu)
 
 resnet3d_model = resnet3d.resnet18(pretrained=True)
+print('pretrained model load finished')
 
 if ONLY_TRAIN_CLASSIFIER is True:
     for param in resnet3d_model.parameters():
@@ -66,6 +68,7 @@ global_step = 0
 if USE_LAST_MODEL is True:
     resnet3d_model.load_state_dict(torch.load(LAST_MODEL))
     global_step = int(LAST_MODEL[:-6])
+    print('last model load finished, step is ', global_step)
 
 if use_gpu:
     resnet3d_model = resnet3d_model.cuda()
@@ -74,6 +77,7 @@ entropy_loss = nn.CrossEntropyLoss()
 
 adam_optimizer = optim.Adam(resnet3d_model.parameters(), lr=LR)
 
+print('train and val begin')
 loss, acc = train_val_model. \
     train_val_model(resnet3d_model, data_set_loaders, entropy_loss, adam_optimizer,
                     num_epoch_save=NUM_EPOCH_SAVE_MODEL, use_gpu=use_gpu, num_epochs=NUM_EPOCH,

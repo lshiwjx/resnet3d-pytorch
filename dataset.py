@@ -4,7 +4,6 @@ import torch.utils.data as data
 import random
 import skimage.data
 import skimage.transform
-import PIL.Image as Image
 import numpy as np
 
 CLIP_LENGTH = 16
@@ -73,6 +72,7 @@ class UCFImageFolder(data.Dataset):
     def __init__(self, root, is_train):
         classes, class_to_idx = find_classes(root)
         clips = make_dataset(root, class_to_idx)
+        print('clips prepare finished')
         if len(clips) == 0:
             raise (RuntimeError("Found 0 clips in subfolders of: " + root +
                                 "\nSupported image extensions are: " + ",".join(IMG_EXTENSIONS)))

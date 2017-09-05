@@ -3,13 +3,14 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+MEAN = [0.485, 0.456, 0.406]  # [101, 97, 90]
+
 
 # Get a batch of training data
 def imshow(inp, title=None):
-    """Image show for Tensor."""
-    inp = inp.permute(1, 2, 0)
-    mean = np.array([0.485, 0.456, 0.406])
-    inp = inp + mean
+    # chw -> hwc
+    inp = inp.permute(1, 2, 0).numpy()
+    inp = inp + MEAN
     plt.imshow(inp)
     if title is not None:
         plt.title(title)
