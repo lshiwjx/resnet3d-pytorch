@@ -59,9 +59,6 @@ class UCFImageFolder(data.Dataset):
 
     Args:
         root (string): Root directory path.
-        transform (callable, optional): A function/transform that  takes in an PIL image
-            and returns a transformed version. E.g, ``transforms.RandomCrop``
-        loader (callable, optional): A function to load an image given its path.
 
      Attributes:
         classes (list): List of the class names.
@@ -85,6 +82,7 @@ class UCFImageFolder(data.Dataset):
 
     def __getitem__(self, index):
         """
+        It is a little slow because of the preprocess
         Args:
             index (int): Index
 

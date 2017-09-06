@@ -22,14 +22,14 @@ import train_val_model
 
 # params
 LR = 0.001
-LR_DECAY_RATIO = 0.1
+LR_DECAY_RATIO = 0.5
 NUM_EPOCH = 20
 NUM_EPOCH_SAVE_MODEL = 2
 CLASS_NUM = 101
-BATCH_SIZE = 256
+BATCH_SIZE = 512
 DEVICE_ID = [0, 1, 2, 3, 4, 5, 6, 7]
-LOG_DIR = "runs/test"
-LAST_MODEL = 'resnet3d-finetuning-18_0.state'
+LOG_DIR = "./runs/test"
+LAST_MODEL = 'resnet3d_finetuning_18-0.state'
 USE_LAST_MODEL = True
 ONLY_TRAIN_CLASSIFIER = False
 
@@ -43,15 +43,17 @@ configure(LOG_DIR)
 data_dir = '/home/lshi/Database/UCF-101/'
 data_set = {x: dataset.UCFImageFolder(os.path.join(data_dir, x), (x is 'train')) for x in ['train', 'val']}
 data_set_loaders = {x: torch.utils.data.DataLoader(data_set[x], batch_size=BATCH_SIZE, shuffle=True,
-                                                   num_workers=50, drop_last=False) for x in ['train', 'val']}
+                                                   num_workers=100, drop_last=True, pin_memory=True) for x in
+                    ['train', 'val']}
 
 data_set_classes = data_set['train'].classes
 # util.write_class_txt(data_set_classes)
 
 # show examples of input
 print('show examples of input')
-util.batch_show(data_set_loaders, data_set_classes)
-util.clip_show(data_set_loaders, data_set_classes)
+# clip, classes = next(iter(data_set_loaders['train']))
+# util.batch_show(clip,classes, data_set_classes)
+# util.clip_show(clip,classes, data_set_classes)
 
 use_gpu = torch.cuda.is_available()
 print('use gpu? ', use_gpu)
@@ -67,7 +69,7 @@ resnet3d_model.fc = nn.Linear(512, CLASS_NUM)
 global_step = 0
 if USE_LAST_MODEL is True:
     resnet3d_model.load_state_dict(torch.load(LAST_MODEL))
-    global_step = int(LAST_MODEL[:-6])
+    global_step = int(LAST_MODEL[:-6].split('-')[1])
     print('last model load finished, step is ', global_step)
 
 if use_gpu:

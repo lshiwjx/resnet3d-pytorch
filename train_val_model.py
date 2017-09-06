@@ -82,14 +82,16 @@ def train_val_model(model, data_set_loaders, loss_function, optimizer, num_epoch
         # test if the lr need decay
         loss_all.append(val_loss)
         acc_all.append(val_acc)
-        test = [abs(val_acc[-i] - val_acc[-i - 1]) < 0.1 for i in range(1, 4)]
-        if len(val_acc) > 5 and test[0] and test[1] and test[2] and test[3]:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * lr_decay_ratio
-                print(param_group, ':   ', param_group['lr'])
+        if len(acc_all) > 5:
+            test = [abs(acc_all[-i] - acc_all[-i - 1]) < 0.1 for i in range(1, 5)]
+            if test[0] and test[1] and test[2] and test[3]:
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = param_group['lr'] * lr_decay_ratio
+                    print('set lr: ', param_group['lr'])
+                    log_value('lr', param_group['lr'], global_step)
 
         # save model
         if epoch % num_epoch_save == 0 and epoch != 0:
-            torch.save(model.state_dict(), 'resnet3d_finetuning_18_' + str(global_step) + '.state')
+            torch.save(model.state_dict(), 'resnet3d_finetuning_18-' + str(global_step) + '.state')
 
     return loss_all, acc_all
