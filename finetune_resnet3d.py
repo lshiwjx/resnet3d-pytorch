@@ -43,7 +43,7 @@ configure(LOG_DIR)
 data_dir = '/home/lshi/Database/UCF-101/'
 data_set = {x: dataset.UCFImageFolder(os.path.join(data_dir, x), (x is 'train')) for x in ['train', 'val']}
 data_set_loaders = {x: torch.utils.data.DataLoader(data_set[x], batch_size=BATCH_SIZE, shuffle=True,
-                                                   num_workers=100, drop_last=True, pin_memory=True) for x in
+                                                   num_workers=16, drop_last=True, pin_memory=True) for x in
                     ['train', 'val']}
 
 data_set_classes = data_set['train'].classes
@@ -58,7 +58,8 @@ print('show examples of input')
 use_gpu = torch.cuda.is_available()
 print('use gpu? ', use_gpu)
 
-resnet3d_model = resnet3d.resnet18(pretrained=True)
+# resnet3d_model = resnet3d.resnet18(pretrained=True)
+resnet3d_model = resnet3d.resnet34(pretrained=True)
 print('pretrained model load finished')
 
 if ONLY_TRAIN_CLASSIFIER is True:

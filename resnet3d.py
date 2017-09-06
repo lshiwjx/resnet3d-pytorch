@@ -167,7 +167,7 @@ def resnet34(pretrained=False, **kwargs):
     """
     model = ResNet3d(BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
+        model.load_state_dict(torch.load('resnet3d-34.state'))
     return model
 
 

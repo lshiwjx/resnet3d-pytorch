@@ -31,7 +31,7 @@ def train_val_model(model, data_set_loaders, loss_function, optimizer, num_epoch
 
                 # wrap them in Variable
                 if use_gpu:
-                    inputs, labels = Variable(inputs.cuda()), Variable(labels.cuda())
+                    inputs, labels = Variable(inputs.cuda(async=True)), Variable(labels.cuda(async=True))
                 else:
                     inputs, labels = Variable(inputs), Variable(labels)
 
