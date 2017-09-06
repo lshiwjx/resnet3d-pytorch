@@ -22,9 +22,6 @@ import train_val_model
 
 # params
 LR = 0.001
-LR_DECAY_RATIO = 0.5
-NUM_EPOCH = 20
-NUM_EPOCH_SAVE_MODEL = 2
 CLASS_NUM = 101
 BATCH_SIZE = 400
 DEVICE_ID = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -68,6 +65,7 @@ if ONLY_TRAIN_CLASSIFIER is True:
 resnet3d_model.fc = nn.Linear(512, CLASS_NUM)
 
 global_step = 0
+# The name for model must be **_**-$(step).state
 if USE_LAST_MODEL is True:
     resnet3d_model.load_state_dict(torch.load(LAST_MODEL))
     global_step = int(LAST_MODEL[:-6].split('-')[1])
@@ -81,8 +79,5 @@ entropy_loss = nn.CrossEntropyLoss()
 adam_optimizer = optim.Adam(resnet3d_model.parameters(), lr=LR, weight_decay=0.0001)
 
 print('train and val begin')
-loss, acc = train_val_model. \
-    train_val_model(resnet3d_model, data_set_loaders, entropy_loss, adam_optimizer,
-                    num_epoch_save=NUM_EPOCH_SAVE_MODEL, use_gpu=use_gpu, num_epochs=NUM_EPOCH,
-                    global_step=global_step, device_id=DEVICE_ID, batch_size=BATCH_SIZE,
-                    lr_decay_ratio=LR_DECAY_RATIO)
+train_val_model.train_val_model(resnet3d_model, data_set_loaders, entropy_loss, adam_optimizer,
+                                use_gpu=use_gpu, global_step=global_step, device_id=DEVICE_ID)
