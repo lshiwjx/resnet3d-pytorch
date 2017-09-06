@@ -26,11 +26,11 @@ LR_DECAY_RATIO = 0.5
 NUM_EPOCH = 20
 NUM_EPOCH_SAVE_MODEL = 2
 CLASS_NUM = 101
-BATCH_SIZE = 512
+BATCH_SIZE = 400
 DEVICE_ID = [0, 1, 2, 3, 4, 5, 6, 7]
 LOG_DIR = "./runs/test"
 LAST_MODEL = 'resnet3d_finetuning_18-0.state'
-USE_LAST_MODEL = True
+USE_LAST_MODEL = False
 ONLY_TRAIN_CLASSIFIER = False
 
 # for tensorboard --logdir runs
@@ -43,7 +43,7 @@ configure(LOG_DIR)
 data_dir = '/home/lshi/Database/UCF-101/'
 data_set = {x: dataset.UCFImageFolder(os.path.join(data_dir, x), (x is 'train')) for x in ['train', 'val']}
 data_set_loaders = {x: torch.utils.data.DataLoader(data_set[x], batch_size=BATCH_SIZE, shuffle=True,
-                                                   num_workers=16, drop_last=True, pin_memory=True) for x in
+                                                   num_workers=32, drop_last=True, pin_memory=True) for x in
                     ['train', 'val']}
 
 data_set_classes = data_set['train'].classes
@@ -78,7 +78,7 @@ if use_gpu:
 
 entropy_loss = nn.CrossEntropyLoss()
 
-adam_optimizer = optim.Adam(resnet3d_model.parameters(), lr=LR)
+adam_optimizer = optim.Adam(resnet3d_model.parameters(), lr=LR, weight_decay=0.0001)
 
 print('train and val begin')
 loss, acc = train_val_model. \

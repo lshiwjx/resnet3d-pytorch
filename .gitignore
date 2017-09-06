@@ -2,4 +2,4 @@
 *.t7
 *.state
 runs/
-/result
+/result/
