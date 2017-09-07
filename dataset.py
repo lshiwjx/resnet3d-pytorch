@@ -6,10 +6,6 @@ import skimage.data
 import skimage.transform
 import numpy as np
 
-CLIP_LENGTH = 16
-MEAN = [0.485, 0.456, 0.406]  # [101, 97, 90]
-RESIZE_SHAPE = (120, 160)
-CROP_SHAPE = (112, 112)
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
@@ -66,7 +62,7 @@ class UCFImageFolder(data.Dataset):
         clips (list): List of (image path, class_index) tuples
     """
 
-    def __init__(self, root, is_train):
+    def __init__(self, root, is_train, args):
         classes, class_to_idx = find_classes(root)
         clips = make_dataset(root, class_to_idx)
         print('clips prepare finished')
@@ -79,6 +75,7 @@ class UCFImageFolder(data.Dataset):
         self.classes = classes
         self.class_to_idx = class_to_idx
         self.is_train = is_train
+        self.args = args
 
     def __getitem__(self, index):
         """
@@ -90,32 +87,34 @@ class UCFImageFolder(data.Dataset):
             tuple: (image, label) where label is class_index of the label class.
         """
         paths = self.clips[index]
-        random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(CLIP_LENGTH)])
+        random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
         clip = []
         label = 0
         # pre processions are same for a clip
-        start_train = [random.randint(0, RESIZE_SHAPE[j] - CROP_SHAPE[j]) for j in range(2)]
-        start_val = [(RESIZE_SHAPE[j] - CROP_SHAPE[j]) // 2 for j in range(2)]
+        start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
+        start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
         tmp = random.randint(0, 2)
         for i in random_list:
             path, label = paths[i]
             # img = Image.open(path)
             img = skimage.data.imread(path)
             if self.is_train:
-                img = skimage.transform.resize(img, RESIZE_SHAPE, mode='reflect')
+                img = skimage.transform.resize(img, self.args.resize_shape, mode='reflect')
 
-                img = img[start_train[0]:start_train[0] + CROP_SHAPE[0], start_train[1]:start_train[1] + CROP_SHAPE[1], :]
+                img = img[start_train[0]:start_train[0] + self.args.crop_shape[0],
+                      start_train[1]:start_train[1] + self.args.crop_shape[1], :]
                 if tmp == 0:
                     img = img[:, ::-1, :]
                 elif tmp == 1:
                     img = img[::-1, :, :]
                 else:
                     pass
-                img -= MEAN
+                img -= self.args.mean
             else:
-                img = skimage.transform.resize(img, RESIZE_SHAPE, mode='reflect')
-                img = img[start_val[0]:start_val[0] + CROP_SHAPE[0], start_val[1]:start_val[1] + CROP_SHAPE[1], :]
-                img -= MEAN
+                img = skimage.transform.resize(img, self.args.resize_shape, mode='reflect')
+                img = img[start_val[0]:start_val[0] + self.args.crop_shape[0],
+                      start_val[1]:start_val[1] + self.args.crop_shape[1], :]
+                img -= self.args.mean
             clip.append(img)
         clip = np.array(clip)
         clip = np.transpose(clip, (3, 0, 1, 2))
