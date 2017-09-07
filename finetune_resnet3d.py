@@ -29,8 +29,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-lr', default=0.0001)
 parser.add_argument('-class_num', default=101)
 parser.add_argument('-batch_size', default=4)
-parser.add_argument('-device_id', default=[1, 2, 3, 7])
-parser.add_argument('-default_device', default=1)
+parser.add_argument('-device_id', default=[0, 1, 2, 3])
 parser.add_argument('-weight_decay_ratio', default=0.0001)
 parser.add_argument('-max_epoch', default=20)
 parser.add_argument('-num_epoch_per_save', default=2)
@@ -49,6 +48,7 @@ parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[112, 112])
 args = parser.parse_args()
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '4,5,6,7'
 # for tensorboard --logdir runs
 if os.path.isdir(args.log_dir) and not args.use_last_model:
     shutil.rmtree(args.log_dir)
@@ -89,7 +89,7 @@ else:
 global_step = 0
 # The name for model must be **_**-$(step).state
 if args.use_last_model is True:
-    model.load_state_dict(torch.load(args.last_model, map_location={'cuda:0': 'cuda:7'}))
+    model.load_state_dict(torch.load(args.last_model))
     global_step = int(args.last_model[:-6].split('-')[1])
     print('Training continue, last model load finished, step is ', global_step)
 else:
@@ -98,7 +98,7 @@ else:
 use_gpu = torch.cuda.is_available()
 print('Use gpu? ', use_gpu)
 if use_gpu:
-    model = model.cuda(args.default_device)
+    model = model.cuda()
 
 loss_function = torch.nn.CrossEntropyLoss(size_average=True)
 print('Using CrossEntropy loss with average')
@@ -116,10 +116,10 @@ for epoch in range(args.max_epoch):
     print('Epoch {}/{}'.format(epoch, args.max_epoch - 1))
     print('Train')
     global_step = train_val_model.train(model, data_set_loaders['train'], loss_function, optimizer,
-                                        global_step, args.default_device, use_gpu, args.device_id)
+                                        global_step, use_gpu, args.device_id)
     print('Validate')
     loss, acc = train_val_model.validate(model, data_set_loaders['val'], loss_function,
-                                         args.default_device, use_gpu, args.device_id)
+                                         use_gpu, args.device_id)
     log_value('val_loss', loss, global_step)
     log_value('val_acc', acc, global_step)
     lr_scheduler.step(acc)
