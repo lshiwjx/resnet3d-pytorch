@@ -29,7 +29,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-lr', default=0.0001)
 parser.add_argument('-class_num', default=101)
 parser.add_argument('-batch_size', default=4)
-parser.add_argument('-device_id', default=[0, 1, 2, 3])
+parser.add_argument('-device_id', default=[1, 2, 3, 7])
+parser.add_argument('-default_device', default=1)
 parser.add_argument('-weight_decay_ratio', default=0.0001)
 parser.add_argument('-max_epoch', default=20)
 parser.add_argument('-num_epoch_per_save', default=2)
@@ -88,7 +89,7 @@ else:
 global_step = 0
 # The name for model must be **_**-$(step).state
 if args.use_last_model is True:
-    model.load_state_dict(torch.load(args.last_model))
+    model.load_state_dict(torch.load(args.last_model, map_location={'cuda:0': 'cuda:7'}))
     global_step = int(args.last_model[:-6].split('-')[1])
     print('Training continue, last model load finished, step is ', global_step)
 else:
@@ -97,7 +98,7 @@ else:
 use_gpu = torch.cuda.is_available()
 print('Use gpu? ', use_gpu)
 if use_gpu:
-    model = model.cuda()
+    model = model.cuda(args.default_device)
 
 loss_function = torch.nn.CrossEntropyLoss(size_average=True)
 print('Using CrossEntropy loss with average')
@@ -106,7 +107,7 @@ lr_scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=args.lr_decay_rat
                                  patience=args.lr_patience, verbose=True,
                                  threshold=args.lr_threshold, threshold_mode='abs',
                                  cooldown=args.lr_delay)
-print('args.lr scheduler: args.lr:{} DecayRatio:{} Patience:{} Threshold:{} Before_epoch:{}'
+print('lr scheduler: lr:{} DecayRatio:{} Patience:{} Threshold:{} Before_epoch:{}'
       .format(args.lr, args.lr_decay_ratio, args.lr_patience, args.lr_threshold, args.lr_delay))
 
 print('Train and val begin, total epoch: ', args.max_epoch)
@@ -115,10 +116,10 @@ for epoch in range(args.max_epoch):
     print('Epoch {}/{}'.format(epoch, args.max_epoch - 1))
     print('Train')
     global_step = train_val_model.train(model, data_set_loaders['train'], loss_function, optimizer,
-                                        global_step, use_gpu, args.device_id)
+                                        global_step, args.default_device, use_gpu, args.device_id)
     print('Validate')
-    loss, acc = train_val_model.validate(model, data_set_loaders['val'],
-                                         loss_function, use_gpu, args.device_id)
+    loss, acc = train_val_model.validate(model, data_set_loaders['val'], loss_function,
+                                         args.default_device, use_gpu, args.device_id)
     log_value('val_loss', loss, global_step)
     log_value('val_acc', acc, global_step)
     lr_scheduler.step(acc)

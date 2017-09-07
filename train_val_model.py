@@ -3,7 +3,7 @@ from torch.autograd import Variable
 from tensorboard_logger import log_value
 
 
-def train(model, data_set_loaders, loss_function, optimizer, global_step,
+def train(model, data_set_loaders, loss_function, optimizer, global_step, device=0,
           use_gpu=True, device_id=(0, 1)):
     model.train()  # Set model to training mode
     step = global_step
@@ -12,7 +12,8 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
 
         # wrap them in Variable
         if use_gpu:
-            inputs, labels = Variable(inputs.cuda(async=True)), Variable(labels.cuda(async=True))
+            inputs, labels = Variable(inputs.cuda(device, async=True)), \
+                             Variable(labels.cuda(device, async=True))
         else:
             inputs, labels = Variable(inputs), Variable(labels)
 
@@ -42,7 +43,7 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
     return step
 
 
-def validate(model, data_set_loaders, loss_function, use_gpu=True, device_id=(0, 1)):
+def validate(model, data_set_loaders, loss_function, device, use_gpu=True, device_id=(0, 1)):
     model.eval()
     val_step = 0
     val_loss = 0
@@ -52,7 +53,8 @@ def validate(model, data_set_loaders, loss_function, use_gpu=True, device_id=(0,
 
         # wrap them in Variable
         if use_gpu:
-            inputs, labels = Variable(inputs.cuda(async=True)), Variable(labels.cuda(async=True))
+            inputs, labels = Variable(inputs.cuda(device, async=True)), \
+                             Variable(labels.cuda(device, async=True))
         else:
             inputs, labels = Variable(inputs), Variable(labels)
         # forward
