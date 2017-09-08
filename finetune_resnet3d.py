@@ -68,8 +68,8 @@ data_set_classes = data_set['train'].classes
 # show examples of input
 print('Show examples of input')
 # clip, classes = next(iter(data_set_loaders['train']))
-# util.batch_show(clip,classes, data_set_classes)
-# util.clip_show(clip,classes, data_set_classes)
+# util.batch_show(clip,classes, data_set_classes, 'batch')
+# util.clip_show(clip,classes, data_set_classes, 'clip')
 
 # model = resnet3d.resnet18(pretrained=True)
 model = resnet3d.resnet34(pretrained=True)

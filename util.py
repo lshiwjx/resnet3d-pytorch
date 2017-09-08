@@ -10,26 +10,28 @@ MEAN = [0.485, 0.456, 0.406]  # [101, 97, 90]
 def imshow(inp, title=None):
     # chw -> hwc
     inp = inp.permute(1, 2, 0).numpy()
-    inp = inp + MEAN
+    n = np.min(inp, 0)
+    m = np.min(n, 0)
+    inp = inp + abs(m)
     plt.imshow(inp)
     if title is not None:
         plt.title(title)
     plt.pause(5)  # pause a bit so that plots are updated
 
 
-def batch_show(clip, classes, data_set_classes):
+def batch_show(clip, classes, data_set_classes, name):
     # nclhw -> lnchw
     clip = clip.permute(2, 0, 1, 3, 4)
     out = torchvision.utils.make_grid(clip[0][0:4])
-    plt.figure('batch data')
+    plt.figure(name)
     imshow(out, title=[data_set_classes[x] for x in classes])
 
 
-def clip_show(clip, classes, data_set_classes):
+def clip_show(clip, classes, data_set_classes, name):
     # nclhw -> nlchw
     clip = clip.permute(0, 2, 1, 3, 4)
     out = torchvision.utils.make_grid(clip[0])
-    plt.figure('clip data')
+    plt.figure(name)
     imshow(out, title=[data_set_classes[x] for x in classes])
 
 
