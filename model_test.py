@@ -22,7 +22,7 @@ parser.add_argument('-crop_shape', default=[112, 112])
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '4,5,6,7'
-data_dir = '/home/sl/Resource/UCF/val/'
+data_dir = '/home/lshi/Database/UCF-101/val/'
 data_set = dataset.UCFImageFolder(data_dir, False, args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=0, drop_last=True,
                               pin_memory=False)
@@ -31,15 +31,19 @@ data_set_classes = data_set.classes
 # show input
 clip, classes = next(iter(data_set_loaders))
 
-util.batch_show(clip, classes, data_set_classes, 'input batch')
-util.clip_show(clip, classes, data_set_classes, 'input clip')
+# util.in_batch_show(clip, classes, data_set_classes, 'input batch')
+# util.in_clip_show(clip, classes, data_set_classes, 'input clip')
 
 model = resnet3d_test.resnet34(pretrained=True)
 model.fc = torch.nn.Linear(512, args.class_num)
 model.load_state_dict(torch.load(args.last_model))
 model.cpu()
 
-outputs, layers = model.forward(clip)
+outputs, layers = model.forward(Variable(clip).float())
 for i in range(5):
-    util.batch_show(layers[i], outputs, data_set_classes, 'batch layer ' + str(i))
-    util.clip_show(layers[i], outputs, data_set_classes, 'clip layer ' + str(i))
+    l = layers[i].data
+    o = outputs.data
+    # util.out_channel_show(l, 'channel layer ' + str(i))
+    util.out_clip_show(l, 'clip layer ' + str(i))
+
+print('finish')
