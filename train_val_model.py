@@ -74,5 +74,6 @@ def validate(model, data_set_loaders, loss_function, use_gpu=True, device_id=(0,
         val_loss += ls
         val_acc += acc
         val_step += 1
+        print('val step {} loss {:.4f} acc {:.4f}'.format(val_step, ls, acc))
 
     return val_loss / val_step, val_acc / val_step

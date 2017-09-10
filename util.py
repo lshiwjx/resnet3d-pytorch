@@ -24,7 +24,7 @@ def in_batch_show(clip, classes, data_set_classes, name):
 def in_clip_show(clip, classes, data_set_classes, name):
     # nclhw -> nlchw
     clip = clip.permute(0, 2, 1, 3, 4)[:, :, 0:3, :, :]
-    out = torchvision.utils.make_grid(clip[0][0:4], normalize=True)
+    out = torchvision.utils.make_grid(clip[0], normalize=True)
     plt.figure(name)
     # chw -> hwc
     out = out.permute(1, 2, 0).numpy()

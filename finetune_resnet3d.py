@@ -26,29 +26,29 @@ import util
 
 # params
 parser = argparse.ArgumentParser()
-parser.add_argument('-lr', default=0.0001)
-parser.add_argument('-class_num', default=101)
-parser.add_argument('-batch_size', default=4)
-parser.add_argument('-device_id', default=[0, 1, 2, 3])
-parser.add_argument('-weight_decay_ratio', default=0.0001)
-parser.add_argument('-max_epoch', default=20)
-parser.add_argument('-num_epoch_per_save', default=2)
-parser.add_argument('-lr_decay_ratio', default=0.5)
-parser.add_argument('-lr_patience', default=2)
+parser.add_argument('-lr', default=0.01)
+parser.add_argument('-class_num', default=83)
+parser.add_argument('-batch_size', default=300)
+parser.add_argument('-device_id', default=[0, 1, 2])
+parser.add_argument('-weight_decay_ratio', default=0.0)
+parser.add_argument('-max_epoch', default=40)
+parser.add_argument('-num_epoch_per_save', default=4)
+parser.add_argument('-lr_decay_ratio', default=0.1)
+parser.add_argument('-lr_patience', default=4)
 parser.add_argument('-lr_threshold', default=0.1)
-parser.add_argument('-lr_delay', default=1)
+parser.add_argument('-lr_delay', default=2)
 parser.add_argument('-log_dir', default="./runs/test")
-parser.add_argument('-model_name', default='resnet3d_finetuning_34-')
-parser.add_argument('-last_model', default='resnet3d_finetuning_34-972.state')
-parser.add_argument('-use_last_model', default=True)
+parser.add_argument('-model_name', default='resnet3d_finetuning_18-')
+parser.add_argument('-last_model', default='resnet3d_finetuning_18-1980.state')
+parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-only_train_classifier', default=False)
 parser.add_argument('-clip_length', default=16)
-parser.add_argument('-mean', default=[0.485, 0.456, 0.406])
+parser.add_argument('-mean', default=[114 / 255, 123 / 255, 125 / 255])
 parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[112, 112])
 args = parser.parse_args()
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '4,5,6,7'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,6,7'
 # for tensorboard --logdir runs
 if os.path.isdir(args.log_dir) and not args.use_last_model:
     shutil.rmtree(args.log_dir)
@@ -56,23 +56,14 @@ if os.path.isdir(args.log_dir) and not args.use_last_model:
 configure(args.log_dir)
 
 # Date reading, setting for batch size, whether shuffle, num_workers
-data_dir = '/home/lshi/Database/UCF-101/'
-data_set = {x: dataset.UCFImageFolder(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
+data_dir = '/home/lshi/Database/Ego_gesture/'
+data_set = {x: dataset.EGOImageFolder(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x], batch_size=args.batch_size, shuffle=True,
                                   num_workers=32, drop_last=True, pin_memory=True)
                     for x in ['train', 'val']}
 
-data_set_classes = data_set['train'].classes
-# util.write_class_txt(data_set_classes)
-
-# show examples of input
-print('Show examples of input')
-# clip, classes = next(iter(data_set_loaders['train']))
-# util.batch_show(clip,classes, data_set_classes, 'batch')
-# util.clip_show(clip,classes, data_set_classes, 'clip')
-
-# model = resnet3d.resnet18(pretrained=True)
-model = resnet3d.resnet34(pretrained=True)
+model = resnet3d.resnet18(pretrained=True)
+# model = resnet3d.resnet34(pretrained=True)
 print('Pretrained model load finished: ', args.model_name[:-2])
 
 if args.only_train_classifier is True:
@@ -95,6 +86,7 @@ if args.use_last_model is True:
 else:
     print('Training from scratch, step is ', global_step)
 
+log_value('lr', args.lr, global_step)
 use_gpu = torch.cuda.is_available()
 print('Use gpu? ', use_gpu)
 if use_gpu:
@@ -125,7 +117,7 @@ for epoch in range(args.max_epoch):
     lr_scheduler.step(acc)
     time_elapsed = time.time() - time_start
     lr = optimizer.param_groups[0]['lr']
-    log_value('lr', lr)
+    log_value('lr', lr, global_step)
     print('validate loss: {:.4f} acc: {:.4f} lr: {}'.format(loss, acc, lr))
 
     # save model

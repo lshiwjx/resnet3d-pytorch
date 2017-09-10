@@ -3,3 +3,4 @@
 *.state
 runs/
 /result/
+/ego/
