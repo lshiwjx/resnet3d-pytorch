@@ -123,7 +123,7 @@ class UCFImageFolder(data.Dataset):
         return len(self.clips)
 
 
-def make_ego_dataset(root):
+def make_ego_dataset(root, clip_length):
     data_path = os.path.join(root, 'images')
     label_path = os.path.join(root, 'labels')
     clips = []
@@ -145,10 +145,16 @@ def make_ego_dataset(root):
                 img_dirs = sorted(os.listdir(rgb_path))
                 for line in f.readlines():
                     clip = []
+                    n = 0
                     label, begin, end = line.split('\n')[0].split(',')
                     for img in img_dirs[int(begin):int(end)]:
                         clip.append(os.path.join(rgb_path, img))
-                    clips.append((clip, int(label) - 1))
+                        n += 1
+                        if len(clip) == clip_length:
+                            clips.append((clip, int(label) - 1))
+                            clip = clip[len(clip) // 2:]  # overlap
+                    if len(clip) is not 0:
+                        clips.append((clip, int(label) - 1))
     return clips
 
 
@@ -165,7 +171,7 @@ class EGOImageFolder(data.Dataset):
     """
 
     def __init__(self, root, is_train, args):
-        clips = make_ego_dataset(root)
+        clips = make_ego_dataset(root, args.clip_length)
         print('clips prepare finished for ', root)
         if len(clips) == 0:
             raise (RuntimeError("Found 0 clips in subfolders of: " + root +
@@ -189,18 +195,17 @@ class EGOImageFolder(data.Dataset):
         paths, label = self.clips[index]
         while len(paths) < self.args.clip_length:
             paths += paths
-        # interval = len(paths) // self.args.clip_length
-        # uniform_list = [i * interval for i in range(self.args.clip_length)]
-        # random_list = sorted([uniform_list[i] + random.randint(0, interval-1) for i in range(self.args.clip_length)])
-        interval = 3
-        uniform_list = [i * interval for i in range(len(paths) // interval)]
-        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(len(paths) // interval)])
+        interval = len(paths) // self.args.clip_length
+        uniform_list = [i * interval for i in range(self.args.clip_length)]
+        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        # interval = 3
+        # uniform_list = [i * interval for i in range(len(paths) // interval)]
+        # random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(len(paths) // interval)])
         clip = []
         # pre processions are same for a clip
         start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
         start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
         tmp = random.randint(0, 2)
-        # n = 0
         for i in random_list:
             path = paths[i]
             # img = Image.open(path)
@@ -222,8 +227,6 @@ class EGOImageFolder(data.Dataset):
                       start_val[1]:start_val[1] + self.args.crop_shape[1], :]
                 img -= self.args.mean
             clip.append(img)
-            # n+=1
-            # if n >8
         clip = np.array(clip)
         clip = np.transpose(clip, (3, 0, 1, 2))
         return clip, label

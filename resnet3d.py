@@ -90,14 +90,14 @@ class Bottleneck(nn.Module):
 
 
 class ResNet3d(nn.Module):
-    def __init__(self, block, layers, num_classes=400):
+    def __init__(self, block, layers, num_classes=101):
         self.inplanes = 64
         super(ResNet3d, self).__init__()
         self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=3,
                                bias=True)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
+        # self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
@@ -133,7 +133,7 @@ class ResNet3d(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        x = self.maxpool(x)
+        # x = self.maxpool(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
@@ -155,7 +155,8 @@ def resnet18(pretrained=False, **kwargs):
     """
     model = ResNet3d(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load('resnet3d-18.state'))
+        model.load_state_dict(torch.load('resnet3d_finetuning_18-399.state'))
+        print('Pretrained model load finished: resnet3d_finetuning_18-399.state')
     return model
 
 
