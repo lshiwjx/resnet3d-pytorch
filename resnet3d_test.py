@@ -90,19 +90,20 @@ class Bottleneck(nn.Module):
 
 
 class ResNet3d(nn.Module):
-    def __init__(self, block, layers, num_classes=101):
+    def __init__(self, block, layers, num_classes=101, clip_length=8, crop_shape=(224, 300)):
         self.inplanes = 64
         super(ResNet3d, self).__init__()
         self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=3,
                                bias=True)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
-        # self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        self.avgpool = nn.AvgPool3d((1, 4, 4))
+        self.avgpool = nn.AvgPool3d(
+            (math.ceil(clip_length / 16), math.ceil(crop_shape[0] / 32), math.ceil(crop_shape[1] / 32)))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
         self.layers = []
 
@@ -135,7 +136,7 @@ class ResNet3d(nn.Module):
         x = self.bn1(x)
         x = self.relu(x)
         self.layers.append(x)
-        # x = self.maxpool(x)
+        x = self.maxpool(x)
 
         x = self.layer1(x)
         self.layers.append(x)
@@ -153,15 +154,8 @@ class ResNet3d(nn.Module):
         return x, self.layers
 
 
-def resnet18(pretrained=False, **kwargs):
-    """Constructs a ResNet-18 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet3d(BasicBlock, [2, 2, 2, 2], **kwargs)
-    if pretrained:
-        model.load_state_dict(torch.load('resnet3d_finetuning_18-399.state'))
+def resnet18(num_class, clip_length, crop_shape):
+    model = ResNet3d(BasicBlock, [2, 2, 2, 2], num_class, clip_length, crop_shape)
     return model
 
 
