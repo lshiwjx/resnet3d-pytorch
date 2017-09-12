@@ -43,11 +43,12 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
     return step
 
 
-def validate(model, data_set_loaders, loss_function, use_gpu=True, device_id=(0, 1)):
+def validate(model, data_set_loaders, loss_function, batch_size, use_gpu=True, device_id=(0, 1)):
     model.eval()
     val_step = 0
     val_loss = 0
     val_acc = 0
+    right_num = 0
     for data in data_set_loaders:
         inputs, labels = data
 
@@ -70,10 +71,11 @@ def validate(model, data_set_loaders, loss_function, use_gpu=True, device_id=(0,
 
         # statistics
         ls = loss.data[0]
-        acc = torch.mean((predict_label == labels.data).float())
+        right_num += torch.sum(predict_label == labels.data)
         val_loss += ls
-        val_acc += acc
         val_step += 1
-        print('val step {} loss {:.4f} acc {:.4f}'.format(val_step, ls, acc))
-
-    return val_loss / val_step, val_acc / val_step
+        print('val step {} loss {:.4f} right num {}'.format(val_step, ls, right_num))
+    val_acc = float(right_num) / val_step / batch_size
+    val_loss /= val_step
+    print('Average val loss: {:.4f}, average val accuracy: {:.4f}'.format(val_loss, val_acc))
+    return val_loss, val_acc

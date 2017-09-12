@@ -121,7 +121,7 @@ for epoch in range(args.max_epoch):
     global_step = train_val_model.train(model, data_set_loaders['train'], loss_function, optimizer,
                                         global_step, use_gpu, args.device_id)
     print('Validate')
-    loss, acc = train_val_model.validate(model, data_set_loaders['val'], loss_function,
+    loss, acc = train_val_model.validate(model, data_set_loaders['val'], loss_function, args.batch_size,
                                          use_gpu, args.device_id)
     log_value('val_loss', loss, global_step)
     log_value('val_acc', acc, global_step)
