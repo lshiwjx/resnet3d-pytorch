@@ -521,7 +521,7 @@ class CHAImageFolderPillow(data.Dataset):
 
         self.root = root
         self.clips = clips  # path of data
-        self.classes = [x for x in range(83)]
+        self.classes = [x for x in range(args.class_num)]
         self.is_train = is_train
         self.args = args
 
@@ -537,9 +537,10 @@ class CHAImageFolderPillow(data.Dataset):
         paths, label = self.clips[index]
         while len(paths) < self.args.clip_length:
             paths += paths
-        interval = len(paths) // self.args.clip_length
-        uniform_list = [i * interval for i in range(self.args.clip_length)]
-        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        # interval = len(paths) // self.args.clip_length
+        # uniform_list = [i * interval for i in range(self.args.clip_length)]
+        # random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
         clip = []
         # pre processions are same for a clip
         start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
