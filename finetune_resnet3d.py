@@ -27,24 +27,24 @@ import util
 # params
 parser = argparse.ArgumentParser()
 parser.add_argument('-class_num', default=83)
-parser.add_argument('-batch_size', default=32)
+parser.add_argument('-batch_size', default=40)
 parser.add_argument('-weight_decay_ratio', default=1e-4)
 parser.add_argument('-max_epoch', default=40)
 
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-lr_decay_ratio', default=0.1)
-parser.add_argument('-lr_patience', default=4)
-parser.add_argument('-lr_threshold', default=0.1)
-parser.add_argument('-lr_delay', default=2)
+parser.add_argument('-lr_patience', default=3)
+parser.add_argument('-lr_threshold', default=0.05)
+parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/max")
+parser.add_argument('-log_dir', default="./runs/overlap")
 parser.add_argument('-num_epoch_per_save', default=4)
-parser.add_argument('-model_saved_name', default='resnet3d_max_18-')
+parser.add_argument('-model_saved_name', default='resnet3d_overlap_18-')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='resnet3d_finetuning_18-11033.state')
 parser.add_argument('-use_pre_trained_model', default=True)
-parser.add_argument('-pre_trained_model', default='resnet3d_finetuning_18-6142.state')
+parser.add_argument('-pre_trained_model', default='resnet3d_max_18-14975.state')
 parser.add_argument('-pre_class_num', default=83)
 parser.add_argument('-only_train_classifier', default=False)
 
@@ -66,9 +66,9 @@ configure(args.log_dir)
 
 # Date reading, setting for batch size, whether shuffle, num_workers
 data_dir = '/home/lshi/Database/Ego_gesture/'
-data_set = {x: dataset.EGOImageFolderPillow(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
+data_set = {x: dataset.EGOImageFolder(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x], batch_size=args.batch_size, shuffle=True,
-                                  num_workers=8, drop_last=True, pin_memory=True)
+                                  num_workers=32, drop_last=True, pin_memory=True)
                     for x in ['train', 'val']}
 
 model = resnet3d.resnet18(args.pre_class_num, args.clip_length, args.crop_shape)
@@ -85,7 +85,7 @@ if args.only_train_classifier is True:
     optimizer = torch.optim.Adam(model.fc.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
 else:
     print('Train all params with weight decay: ', args.weight_decay_ratio)
-    model.fc = torch.nn.Linear(512, args.class_num)
+    # model.fc = torch.nn.Linear(512, args.class_num)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
 
 global_step = 0

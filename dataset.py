@@ -91,9 +91,8 @@ class UCFImageFolder(data.Dataset):
         Returns:
             tuple: (image, label) where label is class_index of the label class.
         """
-        print('index: ', index)
-        sys.stdout.flush()
-
+        # print('\rindex: ', index)
+        # sys.stdout.flush()
         paths = self.clips[index]
         random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
         clip = []
@@ -131,6 +130,7 @@ class UCFImageFolder(data.Dataset):
         return len(self.clips)
 
 
+# with overlap
 def make_ego_dataset(root, clip_length):
     data_path = os.path.join(root, 'images')
     label_path = os.path.join(root, 'labels')
@@ -149,13 +149,15 @@ def make_ego_dataset(root, clip_length):
                 rgb_path = os.path.join(scene_path, 'Color', rgb_dir)
                 label_csv = os.path.join(label_scene_path, 'Group' + rgb_dir[-1] + '.csv')
                 # print("now for data dir %s" % rgb_path)
-                f = open(label_csv)
+                f = pd.read_csv(label_csv, header=None)
                 img_dirs = sorted(os.listdir(rgb_path))
-                for line in f.readlines():
+                for i in range(len(f)):
                     clip = []
                     n = 0
-                    label, begin, end = line.split('\n')[0].split(',')
-                    for img in img_dirs[int(begin):int(end)]:
+                    label, begin, end = f.iloc[i]
+                    for j in range((end - begin) // 2):
+                        # for img in img_dirs[int(begin):int(end)]:
+                        img = img_dirs[begin + j * 2]  # stride=2
                         clip.append(os.path.join(rgb_path, img))
                         n += 1
                         if len(clip) == clip_length:
@@ -206,34 +208,45 @@ class EGOImageFolder(data.Dataset):
         interval = len(paths) // self.args.clip_length
         uniform_list = [i * interval for i in range(self.args.clip_length)]
         random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
-        # interval = 3
-        # uniform_list = [i * interval for i in range(len(paths) // interval)]
-        # random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(len(paths) // interval)])
         clip = []
         # pre processions are same for a clip
         start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
         start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
-        tmp = random.randint(0, 2)
+        flip_rand = random.randint(0, 2)
+        rotate_rand = random.randint(0, 3)
+        flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
+        rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
+        contrast = random.randint(5, 10) * 0.1
+        sharp = random.randint(5, 15) * 0.1
+        bright = random.randint(5, 10) * 0.1
+        color = random.randint(5, 10) * 0.1
         for i in random_list:
             path = paths[i]
-            # img = Image.open(path)
-            img = skimage.data.imread(path)
+            img = Image.open(path)
             if self.is_train:
-                img = skimage.transform.resize(img, self.args.resize_shape, mode='edge')
-                img = img[start_train[0]:start_train[0] + self.args.crop_shape[0],
-                      start_train[1]:start_train[1] + self.args.crop_shape[1], :]
-                if tmp == 0:
-                    img = img[:, ::-1, :]
-                elif tmp == 1:
-                    img = img[::-1, :, :]
-                else:
-                    pass
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_train[0], start_train[1],
+                                start_train[0] + self.args.crop_shape[0],
+                                start_train[1] + self.args.crop_shape[1]))
+                if rotate_rand != 3:
+                    img = img.transpose(rotate[rotate_rand])
+                if flip_rand != 2:
+                    img = img.transpose(flip[flip_rand])
+                img = ie.Contrast(img).enhance(contrast)
+                img = ie.Color(img).enhance(color)
+                img = ie.Brightness(img).enhance(bright)
+                img = ie.Sharpness(img).enhance(sharp)
+                img = np.array(img, dtype=float)
                 img -= self.args.mean
+                img /= 255
             else:
-                img = skimage.transform.resize(img, self.args.resize_shape, mode='edge')
-                img = img[start_val[0]:start_val[0] + self.args.crop_shape[0],
-                      start_val[1]:start_val[1] + self.args.crop_shape[1], :]
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_val[0], start_val[1],
+                                start_val[0] + self.args.crop_shape[0],
+                                start_val[1] + self.args.crop_shape[1]))
+                img = np.array(img, dtype=float)
                 img -= self.args.mean
+                img /= 255
             clip.append(img)
         clip = np.array(clip)
         clip = np.transpose(clip, (3, 0, 1, 2))
@@ -243,6 +256,7 @@ class EGOImageFolder(data.Dataset):
         return len(self.clips)
 
 
+# with transform
 def make_ego_dataset_augment(root):
     data_path = os.path.join(root, 'images')
     label_path = os.path.join(root, 'labels')
@@ -344,6 +358,7 @@ class EGOImageFolderAugment(data.Dataset):
         return len(self.clips)
 
 
+# with pillow
 def make_ego_dataset_pillow(root):
     data_path = os.path.join(root, 'images')
     label_path = os.path.join(root, 'labels')

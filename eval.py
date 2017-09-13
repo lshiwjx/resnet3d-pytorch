@@ -26,29 +26,41 @@ import util
 
 # params
 parser = argparse.ArgumentParser()
-parser.add_argument('-class_num', default=83)
+# parser.add_argument('-class_num', default=83)
+parser.add_argument('-class_num', default=101)
+
 parser.add_argument('-batch_size', default=32)
 
-parser.add_argument('-pre_trained_model', default='resnet3d_finetuning_18-12579.state')
+# parser.add_argument('-pre_trained_model', default='resnet3d_max_18-14975.state')
+parser.add_argument('-pre_trained_model', default='resnet3d_finetuning_34-513.state')
 
-parser.add_argument('-clip_length', default=32)
-parser.add_argument('-resize_shape', default=[240, 320])
-parser.add_argument('-crop_shape', default=[224, 224])  # must be same for rotate
-parser.add_argument('-mean', default=[114 / 1, 123 / 1, 125 / 1])
+# parser.add_argument('-clip_length', default=32)
+# parser.add_argument('-resize_shape', default=[240, 320])
+# parser.add_argument('-crop_shape', default=[224, 224])  # must be same for rotate
+# parser.add_argument('-mean', default=[114 / 1, 123 / 1, 125 / 1])
+# parser.add_argument('-std', default=[0.229, 0.224, 0.225])
+
+parser.add_argument('-clip_length', default=16)
+parser.add_argument('-resize_shape', default=[120, 160])
+parser.add_argument('-crop_shape', default=[112, 112])  # must be same for rotate
+parser.add_argument('-mean', default=[101.6 / 255, 97.6 / 255, 90.3 / 255])
 parser.add_argument('-std', default=[0.229, 0.224, 0.225])
 
 parser.add_argument('-device_id', default=[0, 1, 2, 3])
 os.environ['CUDA_VISIBLE_DEVICES'] = '7,3,6,0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '5,4,2,1'
 # parser.add_argument('-device_id', default=[0])
 
 args = parser.parse_args()
 
-data_dir = '/home/lshi/Database/Ego_gesture/val/'
-data_set = dataset.EGOImageFolderPillow(data_dir, True, args)
-data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=0, drop_last=True,
-                              pin_memory=False)
+# data_dir = '/home/lshi/Database/Ego_gesture/val/'
+# data_set = dataset.EGOImageFolderPillow(data_dir, False, args)
+data_dir = '/home/lshi/Database/UCF-101/val/'
+data_set = dataset.UCFImageFolder(data_dir, False, args)
+data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=8, drop_last=True)
 
-model = resnet3d.resnet18(args.class_num, args.clip_length, args.crop_shape)
+# model = resnet3d.resnet18(args.class_num, args.clip_length, args.crop_shape)
+model = resnet3d.resnet34(args.class_num, args.clip_length, args.crop_shape)
 model.load_state_dict(torch.load(args.pre_trained_model))
 print('Pretrained model load finished: ', args.pre_trained_model)
 

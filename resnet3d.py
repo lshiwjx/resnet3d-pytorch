@@ -102,7 +102,10 @@ class ResNet3d(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        self.avgpool = nn.AvgPool3d((clip_length // 16, math.ceil(crop_shape[0] / 32), math.ceil(crop_shape[1] / 32)))
+        self.avgpool = nn.AvgPool3d(
+            (math.ceil(clip_length // 16), math.ceil(crop_shape[0] / 32), math.ceil(crop_shape[1] / 32)))
+        # self.avgpool = nn.AvgPool3d(
+        #     (math.ceil(clip_length // 8), math.ceil(crop_shape[0] / 16), math.ceil(crop_shape[1] / 16)))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
@@ -152,15 +155,8 @@ def resnet18(num_class, clip_length, crop_shape):
     return model
 
 
-def resnet34(pretrained=False, **kwargs):
-    """Constructs a ResNet-34 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet3d(BasicBlock, [3, 4, 6, 3], **kwargs)
-    if pretrained:
-        model.load_state_dict(torch.load('resnet3d-34.state'))
+def resnet34(num_class, clip_length, crop_shape):
+    model = ResNet3d(BasicBlock, [3, 4, 6, 3], num_class, clip_length, crop_shape)
     return model
 
 
