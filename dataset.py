@@ -474,3 +474,115 @@ class EGOImageFolderPillow(data.Dataset):
 
     def __len__(self):
         return len(self.clips)
+
+
+# with pillow
+def make_cha_dataset_pillow(root, is_train):
+    if is_train:
+        f = open(os.path.join(root, '../train_list'))
+    else:
+        f = open(os.path.join(root, '../val_list'))
+    lines = f.readlines()
+    a = []
+    for line in lines:
+        a.append(int(line.split(' ')[2][:-1]))
+    rgb_dirs = sorted(os.listdir(root))
+    clips = []
+    # make clips
+    for i in range(len(rgb_dirs)):
+        rgb_path = os.path.join(root, rgb_dirs[i])
+        label = a[i]
+        img_dirs = sorted(os.listdir(rgb_path))
+        clip = []
+        for img in img_dirs:
+            clip.append(os.path.join(rgb_path, img))
+        clips.append((clip, int(label - 1)))
+    return clips
+
+
+class CHAImageFolderPillow(data.Dataset):
+    """A generic data loader where the clips are arranged in this way: ::
+
+        root/class/clip/xxx.jpg
+
+    Args:
+        root (string): Root directory path.
+
+     Attributes:
+        clips (list): List of (image path, class_index) tuples
+    """
+
+    def __init__(self, root, is_train, args):
+        clips = make_cha_dataset_pillow(root, is_train)
+        print('clips prepare finished for ', root)
+        if len(clips) == 0:
+            raise (RuntimeError("Found 0 clips in subfolders of: " + root +
+                                "\nSupported image extensions are: " + ",".join(IMG_EXTENSIONS)))
+
+        self.root = root
+        self.clips = clips  # path of data
+        self.classes = [x for x in range(83)]
+        self.is_train = is_train
+        self.args = args
+
+    def __getitem__(self, index):
+        """
+        It is a little slow because of the preprocess
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, label) where label is class_index of the label class.
+        """
+        paths, label = self.clips[index]
+        while len(paths) < self.args.clip_length:
+            paths += paths
+        interval = len(paths) // self.args.clip_length
+        uniform_list = [i * interval for i in range(self.args.clip_length)]
+        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        clip = []
+        # pre processions are same for a clip
+        start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
+        start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
+        flip_rand = random.randint(0, 2)
+        rotate_rand = random.randint(0, 3)
+        flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
+        rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
+        contrast = random.randint(5, 10) * 0.1
+        sharp = random.randint(5, 15) * 0.1
+        bright = random.randint(5, 10) * 0.1
+        color = random.randint(5, 10) * 0.1
+        for i in random_list:
+            path = paths[i]
+            img = Image.open(path)
+            if self.is_train:
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_train[0], start_train[1],
+                                start_train[0] + self.args.crop_shape[0],
+                                start_train[1] + self.args.crop_shape[1]))
+                if rotate_rand != 3:
+                    img = img.transpose(rotate[rotate_rand])
+                if flip_rand != 2:
+                    img = img.transpose(flip[flip_rand])
+                img = ie.Contrast(img).enhance(contrast)
+                img = ie.Color(img).enhance(color)
+                img = ie.Brightness(img).enhance(bright)
+                img = ie.Sharpness(img).enhance(sharp)
+                img = np.array(img, dtype=float)
+                img -= self.args.mean
+                img /= 255
+            else:
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_val[0], start_val[1],
+                                start_val[0] + self.args.crop_shape[0],
+                                start_val[1] + self.args.crop_shape[1]))
+                img = np.array(img, dtype=float)
+                img -= self.args.mean
+                img /= 255
+            clip.append(img)
+        clip = np.array(clip)
+        clip = np.transpose(clip, (3, 0, 1, 2))
+        return clip, label
+
+    def __len__(self):
+        return len(self.clips)

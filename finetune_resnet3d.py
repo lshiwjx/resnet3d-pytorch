@@ -22,12 +22,11 @@ import argparse
 import resnet3d
 import dataset
 import train_val_model
-import util
 
 # params
 parser = argparse.ArgumentParser()
 parser.add_argument('-class_num', default=83)
-parser.add_argument('-batch_size', default=40)
+parser.add_argument('-batch_size', default=200)
 parser.add_argument('-weight_decay_ratio', default=1e-4)
 parser.add_argument('-max_epoch', default=40)
 
@@ -37,8 +36,8 @@ parser.add_argument('-lr_patience', default=3)
 parser.add_argument('-lr_threshold', default=0.05)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/overlap")
-parser.add_argument('-num_epoch_per_save', default=4)
+parser.add_argument('-log_dir', default="./runs/cha")
+parser.add_argument('-num_epoch_per_save', default=2)
 parser.add_argument('-model_saved_name', default='resnet3d_overlap_18-')
 
 parser.add_argument('-use_last_model', default=False)
@@ -48,9 +47,9 @@ parser.add_argument('-pre_trained_model', default='resnet3d_max_18-14975.state')
 parser.add_argument('-pre_class_num', default=83)
 parser.add_argument('-only_train_classifier', default=False)
 
-parser.add_argument('-clip_length', default=32)
-parser.add_argument('-resize_shape', default=[240, 320])
-parser.add_argument('-crop_shape', default=[224, 224])  # must be same for rotate
+parser.add_argument('-clip_length', default=16)
+parser.add_argument('-resize_shape', default=[120, 160])
+parser.add_argument('-crop_shape', default=[112, 112])  # must be same for rotate
 parser.add_argument('-mean', default=[114 / 1, 123 / 1, 125 / 1])
 parser.add_argument('-std', default=[0.229, 0.224, 0.225])
 
@@ -65,8 +64,8 @@ if os.path.isdir(args.log_dir) and not args.use_last_model:
 configure(args.log_dir)
 
 # Date reading, setting for batch size, whether shuffle, num_workers
-data_dir = '/home/lshi/Database/Ego_gesture/'
-data_set = {x: dataset.EGOImageFolder(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
+data_dir = '/home/lshi/Database/ChaLearn/'
+data_set = {x: dataset.CHAImageFolderPillow(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x], batch_size=args.batch_size, shuffle=True,
                                   num_workers=32, drop_last=True, pin_memory=True)
                     for x in ['train', 'val']}
@@ -85,7 +84,7 @@ if args.only_train_classifier is True:
     optimizer = torch.optim.Adam(model.fc.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
 else:
     print('Train all params with weight decay: ', args.weight_decay_ratio)
-    # model.fc = torch.nn.Linear(512, args.class_num)
+    model.fc = torch.nn.Linear(512, args.class_num)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
 
 global_step = 0
