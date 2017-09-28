@@ -1,12 +1,13 @@
-import torch
-import resnet3d_test
-import dataset
-import util
-import train_val_model
-from torch.utils.data import DataLoader
-from torch.autograd import Variable
-import os
 import argparse
+import os
+
+import torch
+from torch.autograd import Variable
+from torch.utils.data import DataLoader
+
+import resnet3d_test
+from data_set import dataset
+from test import util
 
 # params
 parser = argparse.ArgumentParser()
@@ -25,7 +26,7 @@ parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[112, 112])
 args = parser.parse_args()
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 data_dir = '/home/lshi/Database/ChaLearn/val/'
 data_set = dataset.CHAImageFolderPillow(data_dir, True, args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=0, drop_last=True)

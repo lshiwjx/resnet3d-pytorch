@@ -5,5 +5,4 @@ runs/
 /result/
 /ego/
 /ucf/
-/model
 *.GPU

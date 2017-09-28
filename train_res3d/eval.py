@@ -9,20 +9,14 @@ Usage: You should firstly download the data and exact to the directory of fine_t
 """
 from __future__ import print_function, division
 
+import argparse
+import os
+
 import torch
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from tensorboard_logger import configure, log_value
 
-import os
-import time
-import shutil
-import argparse
-
-import resnet3d
-import dataset
-import train_val_model
-import util
+from data_set import dataset
+from train_res3d import resnet3d, train_val_model
 
 # params
 parser = argparse.ArgumentParser()

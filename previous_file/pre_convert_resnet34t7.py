@@ -1,7 +1,8 @@
 import torch
-from resnet3d import resnet34
 import torchvision
 from torch.utils.serialization import load_lua
+
+from train_res3d.resnet3d import resnet34
 
 torchvision.models.resnet34()
 model = resnet34()

@@ -1,16 +1,16 @@
 import os
-import pandas as pd
-import torch.utils.data as data
 import random
+
+import PIL.ImageEnhance as ie
+import numpy as np
+import pandas as pd
 import skimage.data
 import skimage.transform
-import numpy as np
+import torch.utils.data as data
 from PIL import Image  # Replace by accimage when ready
-from pre_process import PowerPIL
 from torchvision import transforms
-import PIL.Image as im
-import PIL.ImageEnhance as ie
-import sys
+
+from data_set.pre_process import PowerPIL
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
