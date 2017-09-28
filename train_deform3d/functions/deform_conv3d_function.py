@@ -2,12 +2,13 @@ import torch
 from torch.autograd import Function
 from torch.nn.modules.utils import _triple
 
-import deform_conv3d_op
+from train_deform3d import deform_conv3d_op
 
 
 def conv_offset3d(input,
                   offset,
                   weight,
+                  bias,
                   stride=1,
                   padding=0,
                   channel_per_group=1):
@@ -18,7 +19,7 @@ def conv_offset3d(input,
 
     f = ConvOffset3dFunction(
         _triple(stride), _triple(padding), channel_per_group)
-    return f(input, offset, weight)
+    return f(input, offset, weight, bias)
 
 
 class ConvOffset3dFunction(Function):
@@ -29,7 +30,7 @@ class ConvOffset3dFunction(Function):
         self.channel_per_group = channel_per_group
         self.savedtensors = ()
 
-    def forward(self, input, offset, weight):
+    def forward(self, input, offset, weight, bias):
         self.save_for_backward(input, offset, weight)
 
         output = torch.zeros(input.size(0), weight.size(0),
@@ -53,6 +54,7 @@ class ConvOffset3dFunction(Function):
                 self.stride[0], self.stride[1], self.stride[2],
                 self.channel_per_group)
             # output = torch.transpose(output,0,1)
+            output = torch.add(output, bias)
         return output
 
     def backward(self, grad_output):

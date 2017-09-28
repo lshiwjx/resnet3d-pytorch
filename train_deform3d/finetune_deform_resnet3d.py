@@ -71,7 +71,11 @@ model = deform_resnet3d_18.ResNet3d(args.class_num, args.clip_length, args.crop_
 
 if args.use_pre_trained_model:
     model.fc = torch.nn.Linear(512, args.pre_class_num)
-    model.load_state_dict(torch.load(args.pre_trained_model))
+    model_dict = model.state_dict()
+    pretrained_dict = torch.load(args.pre_trained_model)
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    model_dict.update(pretrained_dict)
+    model.load_state_dict(model_dict)
     print('----Pretrained model load finished: ', args.pre_trained_model)
 
 if args.only_train_classifier is True:
