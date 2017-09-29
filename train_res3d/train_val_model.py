@@ -23,9 +23,9 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
         if use_gpu:
             # use DataParallel to realize multi gpu
             net = torch.nn.DataParallel(model, device_ids=device_id)
-            outputs = net(inputs.float())
+            outputs, _ = net(inputs.float())
         else:
-            outputs = model(inputs.float())
+            outputs, _ = model(inputs.float())
 
         loss = loss_function(outputs, labels)
         value, predict_label = torch.max(outputs.data, 1)

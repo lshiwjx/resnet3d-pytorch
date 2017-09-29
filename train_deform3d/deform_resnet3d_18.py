@@ -96,7 +96,7 @@ class ResNet3d(nn.Module):
         self.layer2 = nn.Sequential(DownsampleBlock(64, 128), BasicBlock(128))
         self.layer3 = nn.Sequential(DownsampleBlock(128, 256), BasicBlock(256))
 
-        self.layer4 = nn.Sequential(DeformDownsampleBlock(256, 512, 1), BasicBlock(512))
+        self.layer4 = nn.Sequential(DeformDownsampleBlock(256, 512, 8), BasicBlock(512))
 
         self.avgpool = nn.AvgPool3d(
             (math.ceil(clip_length // 16), math.ceil(crop_shape[0] / 32), math.ceil(crop_shape[1] / 32)))
@@ -118,11 +118,16 @@ class ResNet3d(nn.Module):
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
-
+        self.layers.append(x)
         x = self.layer1(x)
+        self.layers.append(x)
         x = self.layer2(x)
+        self.layers.append(x)
         x = self.layer3(x)
+        self.layers.append(x)
+
         x = self.layer4(x)
+        self.layers.append(x)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)

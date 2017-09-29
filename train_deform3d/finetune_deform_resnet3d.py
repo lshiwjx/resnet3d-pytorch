@@ -28,9 +28,9 @@ parser.add_argument('-lr_patience', default=3)
 parser.add_argument('-lr_threshold', default=0.01)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/deform_ucf_")
+parser.add_argument('-log_dir', default="./runs/deform_ucf")
 parser.add_argument('-num_epoch_per_save', default=2)
-parser.add_argument('-model_saved_name', default='deform-')
+parser.add_argument('-model_saved_name', default='deform_ucf')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
@@ -142,7 +142,7 @@ for epoch in range(args.max_epoch):
 
     # save model
     if epoch % args.num_epoch_per_save == 0 and epoch != 0:
-        torch.save(model.state_dict(), args.model_saved_name + str(global_step) + '.state')
+        torch.save(model.state_dict(), args.model_saved_name + '-' + str(global_step) + '.state')
         print('Save model at step ', global_step)
     print('Epoch {} finished, using time: {:.0f}m {:.0f}s'.
           format(epoch, time_elapsed // 60, time_elapsed % 60))

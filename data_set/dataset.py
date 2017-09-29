@@ -4,11 +4,11 @@ import random
 import PIL.ImageEnhance as ie
 import numpy as np
 import pandas as pd
-import skimage.data
-import skimage.transform
+# import skimage.data
+# import skimage.transform
 import torch.utils.data as data
 from PIL import Image  # Replace by accimage when ready
-from torchvision import transforms
+# from torchvision import transforms
 
 from data_set.pre_process import PowerPIL
 
@@ -94,33 +94,49 @@ class UCFImageFolder(data.Dataset):
         # print('\rindex: ', index)
         # sys.stdout.flush()
         paths = self.clips[index]
-        random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
+        interval = len(paths) // self.args.clip_length
+        uniform_list = [i * interval for i in range(self.args.clip_length)]
+        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
         clip = []
         label = 0
         # pre processions are same for a clip
         start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
         start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
-        tmp = random.randint(0, 2)
+        flip_rand = random.randint(0, 2)
+        rotate_rand = random.randint(0, 3)
+        flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
+        rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
+        contrast = random.randint(5, 10) * 0.1
+        sharp = random.randint(5, 15) * 0.1
+        bright = random.randint(5, 10) * 0.1
+        color = random.randint(5, 10) * 0.1
         for i in random_list:
             path, label = paths[i]
-            # img = Image.open(path)
-            img = skimage.data.imread(path)
+            img = Image.open(path)
             if self.is_train:
-                img = skimage.transform.resize(img, self.args.resize_shape, mode='reflect')
-                img = img[start_train[0]:start_train[0] + self.args.crop_shape[0],
-                      start_train[1]:start_train[1] + self.args.crop_shape[1], :]
-                if tmp == 0:
-                    img = img[:, ::-1, :]
-                elif tmp == 1:
-                    img = img[::-1, :, :]
-                else:
-                    pass
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_train[0], start_train[1],
+                                start_train[0] + self.args.crop_shape[0],
+                                start_train[1] + self.args.crop_shape[1]))
+                if rotate_rand != 3:
+                    img = img.transpose(rotate[rotate_rand])
+                if flip_rand != 2:
+                    img = img.transpose(flip[flip_rand])
+                img = ie.Contrast(img).enhance(contrast)
+                img = ie.Color(img).enhance(color)
+                img = ie.Brightness(img).enhance(bright)
+                img = ie.Sharpness(img).enhance(sharp)
+                img = np.array(img, dtype=float)
                 img -= self.args.mean
+                img /= 255
             else:
-                img = skimage.transform.resize(img, self.args.resize_shape, mode='reflect')
-                img = img[start_val[0]:start_val[0] + self.args.crop_shape[0],
-                      start_val[1]:start_val[1] + self.args.crop_shape[1], :]
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_val[0], start_val[1],
+                                start_val[0] + self.args.crop_shape[0],
+                                start_val[1] + self.args.crop_shape[1]))
+                img = np.array(img, dtype=float)
                 img -= self.args.mean
+                img /= 255
             clip.append(img)
         clip = np.array(clip)
         clip = np.transpose(clip, (3, 0, 1, 2))

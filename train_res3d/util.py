@@ -3,7 +3,6 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def img_show(inp, title=None):
     plt.imshow(inp)
     if title is not None:

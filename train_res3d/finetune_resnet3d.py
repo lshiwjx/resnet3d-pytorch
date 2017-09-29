@@ -15,7 +15,7 @@ from train_res3d import resnet3d_18, train_val_model
 
 # params
 parser = argparse.ArgumentParser()
-parser.add_argument('-class_num', default=249)
+parser.add_argument('-class_num', default=101)
 parser.add_argument('-batch_size', default=128)
 parser.add_argument('-weight_decay_ratio', default=1e-4)
 parser.add_argument('-max_epoch', default=40)
@@ -26,7 +26,7 @@ parser.add_argument('-lr_patience', default=3)
 parser.add_argument('-lr_threshold', default=0.05)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/513-34")
+parser.add_argument('-log_dir', default="../runs/ucf-18-16")
 parser.add_argument('-num_epoch_per_save', default=2)
 parser.add_argument('-model_saved_name', default='513_34-')
 
@@ -55,8 +55,8 @@ if os.path.isdir(args.log_dir) and not args.use_last_model:
 configure(args.log_dir)
 
 # Date reading, setting for batch size, whether shuffle, num_workers
-data_dir = '/home/lshi/Database/ChaLearn/'
-data_set = {x: dataset.CHAImageFolderPillow(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
+data_dir = '/home/lshi/Database/UCF-101/'
+data_set = {x: dataset.UCFImageFolder(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x],
                                   batch_size=args.batch_size,
                                   shuffle=True,

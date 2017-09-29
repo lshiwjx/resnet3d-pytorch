@@ -5,7 +5,7 @@ import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from train_res3d import resnet3d_18
+from train_deform3d import deform_resnet3d_18
 from data_set import dataset
 from train_res3d import util
 
@@ -40,12 +40,11 @@ data_set_classes = data_set.classes
 
 # show input
 clip, labels = next(iter(data_set_loaders))
-
+#
 util.in_batch_show(clip, labels, data_set_classes, 'input batch')
 util.in_clip_show(clip, labels, data_set_classes, 'input clip')
 
-model = resnet3d_18.ResNet3d(args.class_num, args.clip_length, args.crop_shape)
-
+model = deform_resnet3d_18.ResNet3d(args.class_num, args.clip_length, args.crop_shape)
 if args.use_pre_trained_model:
     model.fc = torch.nn.Linear(512, args.pre_class_num)
     model_dict = model.state_dict()
@@ -61,17 +60,18 @@ optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.w
 loss_function = torch.nn.CrossEntropyLoss(size_average=True)
 
 # model.cpu()
+model.cuda()
 model.train()
-clip, labels = Variable(clip).float(), Variable(labels)
+clip, labels = Variable(clip).float().cuda(), Variable(labels).cuda()
 outputs, layers = model(clip)
 loss = loss_function(outputs, labels)
 loss.backward()
 optimizer.step()
 
-# for i in range(5):
-#     l = layers[i].data
-#     o = outputs.data
-#     # util.out_channel_show(l, 'channel layer ' + str(i))
-#     util.out_clip_show(l, 'clip layer ' + str(i))
+for i in range(5):
+    l = layers[i].cpu().data
+    o = outputs.data
+    # util.out_channel_show(l, 'channel layer ' + str(i))
+    util.out_clip_show(l, 'clip layer ' + str(i))
 
 print('finish')
