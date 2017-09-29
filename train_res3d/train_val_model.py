@@ -61,9 +61,9 @@ def validate(model, data_set_loaders, loss_function, batch_size, use_gpu=True, d
         # forward
         if use_gpu:
             net = torch.nn.DataParallel(model, device_ids=device_id)
-            outputs = net(inputs.float())
+            outputs, _ = net(inputs.float())
         else:
-            outputs = model(inputs.float())
+            outputs, _ = model(inputs.float())
 
         # return value and index
         _, predict_label = torch.max(outputs.data, 1)

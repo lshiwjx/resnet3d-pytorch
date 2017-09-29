@@ -17,7 +17,7 @@ from train_deform3d import deform_resnet3d_18
 # params
 parser = argparse.ArgumentParser()
 parser.add_argument('-class_num', default=101)
-parser.add_argument('-batch_size', default=120)
+parser.add_argument('-batch_size', default=16)
 parser.add_argument('-weight_decay_ratio', default=1e-4)
 parser.add_argument('-momentum', default=0.9)
 parser.add_argument('-max_epoch', default=40)
@@ -28,9 +28,9 @@ parser.add_argument('-lr_patience', default=3)
 parser.add_argument('-lr_threshold', default=0.01)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/deform_ucf")
+parser.add_argument('-log_dir', default="./runs/deform_ucf_pre")
 parser.add_argument('-num_epoch_per_save', default=2)
-parser.add_argument('-model_saved_name', default='deform_ucf')
+parser.add_argument('-model_saved_name', default='deform_ucf_pre')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
@@ -46,8 +46,8 @@ parser.add_argument('-crop_shape', default=[112, 112])  # must be same for rotat
 parser.add_argument('-mean', default=[101, 97, 90])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
 parser.add_argument('-std', default=[0.229, 0.224, 0.225])
 
-parser.add_argument('-device_id', default=[0, 1, 2, 3])
-os.environ['CUDA_VISIBLE_DEVICES'] = '7,6,5,4'
+parser.add_argument('-device_id', default=[0])
+os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 args = parser.parse_args()
 
 # for tensorboard --logdir runs

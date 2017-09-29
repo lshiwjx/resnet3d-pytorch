@@ -150,6 +150,95 @@ class UCFImageFolder(data.Dataset):
         return len(self.clips)
 
 
+class UCFImageFolderPlain(data.Dataset):
+    """A generic data loader where the clips are arranged in this way: ::
+
+        root/class/clip/xxx.jpg
+
+    Args:
+        root (string): Root directory path.
+
+     Attributes:
+        classes (list): List of the class names.
+        class_to_idx (dict): Dict with items (class_name, class_index).
+        clips (list): List of (image path, class_index) tuples
+    """
+
+    def __init__(self, root, is_train, args):
+        classes, class_to_idx = find_classes(root)
+        clips = make_dataset(root, class_to_idx)
+        print('clips prepare finished')
+        if len(clips) == 0:
+            raise (RuntimeError("Found 0 clips in subfolders of: " + root +
+                                "\nSupported image extensions are: " + ",".join(IMG_EXTENSIONS)))
+
+        self.root = root
+        self.clips = clips  # path of data
+        self.classes = classes
+        self.class_to_idx = class_to_idx
+        self.is_train = is_train
+        self.args = args
+
+    def __getitem__(self, index):
+        """
+        It is a little slow because of the preprocess
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, label) where label is class_index of the label class.
+        """
+        # print('\rindex: ', index)
+        # sys.stdout.flush()
+        paths = self.clips[index]
+        while len(paths) < 150:  # self.args.clip_length:
+            tmp = []
+            [tmp.extend([x, x]) for x in paths]
+            paths = tmp
+        interval = len(paths) // self.args.clip_length
+        uniform_list = [i * interval for i in range(self.args.clip_length)]
+        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        clip = []
+        label = 0
+        # pre processions are same for a clip
+        start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
+        start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
+        flip_rand = random.randint(0, 2)
+        rotate_rand = random.randint(0, 3)
+        flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
+        rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
+        for i in random_list:
+            path, label = paths[i]
+            img = Image.open(path)
+            if self.is_train:
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_train[0], start_train[1],
+                                start_train[0] + self.args.crop_shape[0],
+                                start_train[1] + self.args.crop_shape[1]))
+                if rotate_rand != 3:
+                    img = img.transpose(rotate[rotate_rand])
+                if flip_rand != 2:
+                    img = img.transpose(flip[flip_rand])
+                img = np.array(img, dtype=float)
+                img -= self.args.mean
+                img /= 255
+            else:
+                img = img.resize(self.args.resize_shape)
+                img = img.crop((start_val[0], start_val[1],
+                                start_val[0] + self.args.crop_shape[0],
+                                start_val[1] + self.args.crop_shape[1]))
+                img = np.array(img, dtype=float)
+                img -= self.args.mean
+                img /= 255
+            clip.append(img)
+        clip = np.array(clip)
+        clip = np.transpose(clip, (3, 0, 1, 2))
+        return clip, label
+
+    def __len__(self):
+        return len(self.clips)
+
+
 # with overlap
 def make_ego_dataset(root, clip_length):
     data_path = os.path.join(root, 'images')

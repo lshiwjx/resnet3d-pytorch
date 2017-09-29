@@ -16,36 +16,36 @@ from train_res3d import resnet3d_18, train_val_model
 # params
 parser = argparse.ArgumentParser()
 parser.add_argument('-class_num', default=101)
-parser.add_argument('-batch_size', default=128)
+parser.add_argument('-batch_size', default=16)
 parser.add_argument('-weight_decay_ratio', default=1e-4)
-parser.add_argument('-max_epoch', default=40)
+parser.add_argument('-max_epoch', default=20)
 
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-lr_decay_ratio', default=0.1)
 parser.add_argument('-lr_patience', default=3)
-parser.add_argument('-lr_threshold', default=0.05)
+parser.add_argument('-lr_threshold', default=0.01)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="../runs/ucf-18-16")
+parser.add_argument('-log_dir', default="./runs/res3d_ucf_pla")
 parser.add_argument('-num_epoch_per_save', default=2)
-parser.add_argument('-model_saved_name', default='513_34-')
+parser.add_argument('-model_saved_name', default='res3d_ucf_pla')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='resnet3d_finetuning_18-11033.state')
 
 parser.add_argument('-use_pre_trained_model', default=True)
-parser.add_argument('-pre_trained_model', default='resnet3d_finetuning_34-513-0.9362.state')
+parser.add_argument('-pre_trained_model', default='resnet3d_finetuning_18-399-0.93.state')
 parser.add_argument('-pre_class_num', default=101)
 parser.add_argument('-only_train_classifier', default=False)
 
 parser.add_argument('-clip_length', default=16)
 parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[112, 112])  # must be same for rotate
-parser.add_argument('-mean', default=[124, 108, 115])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
+parser.add_argument('-mean', default=[101, 97, 90])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
 parser.add_argument('-std', default=[0.229, 0.224, 0.225])
 
-parser.add_argument('-device_id', default=[0, 1, 2, 3, 4, 5, 6, 7])
-os.environ['CUDA_VISIBLE_DEVICES'] = '7,6,5,4,3,2,1,0'
+parser.add_argument('-device_id', default=[0])
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 args = parser.parse_args()
 
 # for tensorboard --logdir runs
@@ -56,7 +56,7 @@ configure(args.log_dir)
 
 # Date reading, setting for batch size, whether shuffle, num_workers
 data_dir = '/home/lshi/Database/UCF-101/'
-data_set = {x: dataset.UCFImageFolder(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
+data_set = {x: dataset.UCFImageFolderPlain(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x],
                                   batch_size=args.batch_size,
                                   shuffle=True,
@@ -136,7 +136,7 @@ for epoch in range(args.max_epoch):
 
     # save model
     if epoch % args.num_epoch_per_save == 0 and epoch != 0:
-        torch.save(model.state_dict(), args.model_saved_name + str(global_step) + '.state')
+        torch.save(model.state_dict(), args.model_saved_name + '-' + str(global_step) + '.state')
         print('Save model at step ', global_step)
     print('Epoch {} finished, using time: {:.0f}m {:.0f}s'.
           format(epoch, time_elapsed // 60, time_elapsed % 60))

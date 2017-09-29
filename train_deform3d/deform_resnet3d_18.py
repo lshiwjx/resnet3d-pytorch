@@ -93,10 +93,10 @@ class ResNet3d(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
         self.layer1 = nn.Sequential(BasicBlock(64), BasicBlock(64))
-        self.layer2 = nn.Sequential(DownsampleBlock(64, 128), BasicBlock(128))
+        self.layer2 = nn.Sequential(DeformDownsampleBlock(64, 128, 8), BasicBlock(128))
         self.layer3 = nn.Sequential(DownsampleBlock(128, 256), BasicBlock(256))
 
-        self.layer4 = nn.Sequential(DeformDownsampleBlock(256, 512, 8), BasicBlock(512))
+        self.layer4 = nn.Sequential(DownsampleBlock(256, 512), BasicBlock(512))
 
         self.avgpool = nn.AvgPool3d(
             (math.ceil(clip_length // 16), math.ceil(crop_shape[0] / 32), math.ceil(crop_shape[1] / 32)))
@@ -114,6 +114,7 @@ class ResNet3d(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
+        self.layers = []
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
