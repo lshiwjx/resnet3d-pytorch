@@ -94,6 +94,10 @@ class UCFImageFolder(data.Dataset):
         # print('\rindex: ', index)
         # sys.stdout.flush()
         paths = self.clips[index]
+        while len(paths) < 150:  # self.args.clip_length:
+            tmp = []
+            [tmp.extend([x, x]) for x in paths]
+            paths = tmp
         interval = len(paths) // self.args.clip_length
         uniform_list = [i * interval for i in range(self.args.clip_length)]
         random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
@@ -439,8 +443,10 @@ class EGOImageFolderPillow(data.Dataset):
             tuple: (image, label) where label is class_index of the label class.
         """
         paths, label = self.clips[index]
-        while len(paths) < self.args.clip_length:
-            paths += paths
+        while len(paths) < 150:  # self.args.clip_length:
+            tmp = []
+            [tmp.extend([x, x]) for x in paths]
+            paths = tmp
         interval = len(paths) // self.args.clip_length
         uniform_list = [i * interval for i in range(self.args.clip_length)]
         random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
@@ -551,8 +557,10 @@ class CHAImageFolderPillow(data.Dataset):
             tuple: (image, label) where label is class_index of the label class.
         """
         paths, label = self.clips[index]
-        while len(paths) < self.args.clip_length:
-            paths += paths
+        while len(paths) < 150:  # self.args.clip_length:
+            tmp = []
+            [tmp.extend([x, x]) for x in paths]
+            paths = tmp
         # interval = len(paths) // self.args.clip_length
         # uniform_list = [i * interval for i in range(self.args.clip_length)]
         # random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
