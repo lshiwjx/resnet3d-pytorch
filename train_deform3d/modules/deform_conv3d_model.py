@@ -25,8 +25,6 @@ class ConvOffset3d(Module):
 
         self.weight = nn.Parameter(
             torch.Tensor(out_channels, in_channels, *self.kernel_size))
-        self.bias = nn.Parameter(
-            torch.Tensor(out_channels))
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -35,9 +33,8 @@ class ConvOffset3d(Module):
             n *= k
         stdv = 1. / math.sqrt(n)
         self.weight.data.uniform_(-stdv, stdv)
-        self.bias.data.zero_()
 
     def forward(self, input, offset):
-        return conv_offset3d(input, offset, self.weight, self.bias,
+        return conv_offset3d(input, offset, self.weight,
                              self.stride, self.padding, self.channel_per_group)
 

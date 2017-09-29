@@ -58,7 +58,7 @@ class DownsampleBlock(nn.Module):
 class DeformDownsampleBlock(nn.Module):
     def __init__(self, channel_in, channel, channel_per_group):
         super(DeformDownsampleBlock, self).__init__()
-        self.conv_off = nn.Conv3d(channel_in, channel // channel_per_group * 3 * 27, kernel_size=3, stride=1,
+        self.conv_off = nn.Conv3d(channel_in, channel_in // channel_per_group * 3 * 27, kernel_size=3, stride=2,
                                   padding=1, bias=True)
         self.conv1 = ConvOffset3d(channel_in, channel, kernel_size=3, stride=2, padding=1,
                                   channel_per_group=channel_per_group)
