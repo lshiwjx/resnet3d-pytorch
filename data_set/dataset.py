@@ -705,9 +705,9 @@ class CHAImageFolderPillow(data.Dataset):
 # with pillow
 def make_jester_dataset(jester_root, is_train):
     if is_train:
-        f = pd.read_csv(os.path.join(jester_root, 'val.csv'))
+        f = pd.read_csv(os.path.join(jester_root, 'val.csv'), header=None)
     else:
-        f = pd.read_csv(os.path.join(jester_root, 'val.csv'))
+        f = pd.read_csv(os.path.join(jester_root, 'val.csv'), header=None)
     clips = []
     # make clips
     for i in range(len(f)):
@@ -734,13 +734,13 @@ class JesterImageFolder(data.Dataset):
     """
 
     def __init__(self, is_train, args):
-        jester_root = '/home/lshi/Database/Jester'
+        jester_root = '/home/lshi/Database/Jester/'
         clips = make_jester_dataset(jester_root, is_train)
         print('clips prepare finished for ', jester_root)
         if len(clips) == 0:
             raise (RuntimeError("Found 0 clips in subfolders of: " + jester_root +
                                 "\nSupported image extensions are: " + ",".join(IMG_EXTENSIONS)))
-
+        # TODO
         self.root = jester_root
         self.clips = clips  # path of data
         self.classes = [x for x in range(args.class_num)]
@@ -767,20 +767,22 @@ class JesterImageFolder(data.Dataset):
         # random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
         clip = []
         # pre processions are same for a clip
-        start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
-        start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
-        flip_rand = random.randint(0, 2)
-        rotate_rand = random.randint(0, 3)
+        # start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
+        # start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
+        # flip_rand = random.randint(0, 2)
+        # rotate_rand = random.randint(0, 3)
         # flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
         # rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
         for i in random_list:
             path = paths[i]
             img = Image.open(path)
+            start_train = random.randint(0, img.width - self.args.crop_shape[1])
             if self.is_train:
-                img = img.resize(self.args.resize_shape)
-                img = img.crop((start_train[0], start_train[1],
-                                start_train[0] + self.args.crop_shape[0],
-                                start_train[1] + self.args.crop_shape[1]))
+                # img = img.resize(self.args.resize_shape)
+                box = (0, start_train,
+                       self.args.crop_shape[0],
+                       start_train + self.args.crop_shape[1])
+                img = img.crop(box)
                 # if rotate_rand != 3:
                 #     img = img.transpose(rotate[rotate_rand])
                 # if flip_rand != 2:
@@ -789,10 +791,12 @@ class JesterImageFolder(data.Dataset):
                 img -= self.args.mean
                 img /= 255
             else:
-                img = img.resize(self.args.resize_shape)
-                img = img.crop((start_val[0], start_val[1],
-                                start_val[0] + self.args.crop_shape[0],
-                                start_val[1] + self.args.crop_shape[1]))
+                # img = img.resize(self.args.resize_shape)
+                start_val = (img.width - self.args.crop_shape[1]) // 2
+                box = (0, start_val,
+                       self.args.crop_shape[0],
+                       start_val + self.args.crop_shape[1])
+                img = img.crop(box)
                 img = np.array(img, dtype=float)
                 img -= self.args.mean
                 img /= 255
