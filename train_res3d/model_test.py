@@ -30,7 +30,7 @@ parser.add_argument('-device_id', default=[0])
 args = parser.parse_args()
 
 data_dir = '/home/lshi/Database/UCF-101/val/'
-data_set = dataset.UCFImageFolder(data_dir, True, args)
+data_set = dataset.JesterImageFolder(True, args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=0, drop_last=True)
 data_set_classes = data_set.classes
 

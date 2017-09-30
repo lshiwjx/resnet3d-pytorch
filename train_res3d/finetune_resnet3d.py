@@ -15,7 +15,7 @@ from train_res3d import resnet3d_18, train_val_model
 
 # params
 parser = argparse.ArgumentParser()
-parser.add_argument('-class_num', default=101)
+parser.add_argument('-class_num', default=27)
 parser.add_argument('-batch_size', default=16)
 parser.add_argument('-weight_decay_ratio', default=1e-4)
 parser.add_argument('-max_epoch', default=20)
@@ -44,8 +44,8 @@ parser.add_argument('-crop_shape', default=[112, 112])  # must be same for rotat
 parser.add_argument('-mean', default=[101, 97, 90])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
 parser.add_argument('-std', default=[0.229, 0.224, 0.225])
 
-parser.add_argument('-device_id', default=[0])
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+parser.add_argument('-device_id', default=[0, 1, 2, 3])
+os.environ['CUDA_VISIBLE_DEVICES'] = '7,6,5,4'
 args = parser.parse_args()
 
 # for tensorboard --logdir runs
@@ -55,12 +55,12 @@ if os.path.isdir(args.log_dir) and not args.use_last_model:
 configure(args.log_dir)
 
 # Date reading, setting for batch size, whether shuffle, num_workers
-data_dir = '/home/lshi/Database/UCF-101/'
-data_set = {x: dataset.UCFImageFolderPlain(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
+# data_dir = '/home/lshi/Database/UCF-101/'
+data_set = {x: dataset.JesterImageFolder((x is 'train'), args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x],
                                   batch_size=args.batch_size,
                                   shuffle=True,
-                                  num_workers=32,
+                                  num_workers=20,
                                   drop_last=True,
                                   pin_memory=True)
                     for x in ['train', 'val']}
