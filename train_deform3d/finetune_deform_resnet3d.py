@@ -16,38 +16,38 @@ from train_deform3d import deform_resnet3d_18
 
 # params
 parser = argparse.ArgumentParser()
-parser.add_argument('-class_num', default=101)
-parser.add_argument('-batch_size', default=16)
-parser.add_argument('-weight_decay_ratio', default=1e-4)
+parser.add_argument('-class_num', default=27)
+parser.add_argument('-batch_size', default=160)
+parser.add_argument('-weight_decay_ratio', default=5e-4)
 parser.add_argument('-momentum', default=0.9)
 parser.add_argument('-max_epoch', default=40)
 
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-lr_decay_ratio', default=0.1)
-parser.add_argument('-lr_patience', default=3)
-parser.add_argument('-lr_threshold', default=0.01)
+parser.add_argument('-lr_patience', default=5)
+parser.add_argument('-lr_threshold', default=0.02)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/deform_ucf_pre")
-parser.add_argument('-num_epoch_per_save', default=2)
-parser.add_argument('-model_saved_name', default='deform_ucf_pre')
+parser.add_argument('-log_dir', default="./runs/deform_jes_l3d4")
+parser.add_argument('-num_epoch_per_save', default=4)
+parser.add_argument('-model_saved_name', default='deform_jes_l3d4')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
 
 parser.add_argument('-use_pre_trained_model', default=True)
-parser.add_argument('-pre_trained_model', default='resnet3d_finetuning_18-399-0.93.state')
-parser.add_argument('-pre_class_num', default=101)
+parser.add_argument('-pre_trained_model', default='resnet3d-18.state')
+parser.add_argument('-pre_class_num', default=400)
 parser.add_argument('-only_train_classifier', default=False)
 
-parser.add_argument('-clip_length', default=16)
+parser.add_argument('-clip_length', default=32)
 parser.add_argument('-resize_shape', default=[120, 160])
-parser.add_argument('-crop_shape', default=[112, 112])  # must be same for rotate
-parser.add_argument('-mean', default=[101, 97, 90])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
-parser.add_argument('-std', default=[0.229, 0.224, 0.225])
+parser.add_argument('-crop_shape', default=[100, 100])  # must be same for rotate
+parser.add_argument('-mean', default=[0.45, 0.43, 0.41])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
+parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 
-parser.add_argument('-device_id', default=[0])
-os.environ['CUDA_VISIBLE_DEVICES'] = '4'
+parser.add_argument('-device_id', default=[0, 1, 2, 3])
+os.environ['CUDA_VISIBLE_DEVICES'] = '7,6,5,4'
 args = parser.parse_args()
 
 # for tensorboard --logdir runs
@@ -57,12 +57,12 @@ if os.path.isdir(args.log_dir) and not args.use_last_model:
 configure(args.log_dir)
 
 # Date reading, setting for batch size, whether shuffle, num_workers
-data_dir = '/home/lshi/Database/UCF-101/'
-data_set = {x: dataset.UCFImageFolder(os.path.join(data_dir, x), (x is 'train'), args) for x in ['train', 'val']}
+# data_dir = '/home/lshi/Database/UCF-101/'
+data_set = {x: dataset.JesterImageFolder((x is 'train'), args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x],
                                   batch_size=args.batch_size,
-                                  shuffle=True,
-                                  num_workers=20,
+                                  shuffle=False,
+                                  num_workers=10,
                                   drop_last=True,
                                   pin_memory=True)
                     for x in ['train', 'val']}
@@ -84,16 +84,14 @@ if args.only_train_classifier is True:
         param.requires_grad = False
     if args.pre_class_num != args.class_num:
         model.fc = torch.nn.Linear(512, args.class_num)
-    # optimizer = torch.optim.Adam(model.fc.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
-    optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,
-                                weight_decay=args.weight_decay_ratio)
+    optimizer = torch.optim.Adam(model.fc.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
+    # optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,weight_decay=args.weight_decay_ratio)
 else:
     print('----Train all params with weight decay: ', args.weight_decay_ratio)
     if args.pre_class_num != args.class_num:
         model.fc = torch.nn.Linear(512, args.class_num)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
-    optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,
-                                weight_decay=args.weight_decay_ratio)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
+    # optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,weight_decay=args.weight_decay_ratio)
 
 global_step = 0
 # The name for model must be **_**-$(step).state

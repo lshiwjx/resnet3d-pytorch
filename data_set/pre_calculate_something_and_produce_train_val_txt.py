@@ -183,6 +183,8 @@ def jester():
         for img in imgs:
             pic_path = os.path.join(img_path, img)
             pic = ski.imread(pic_path)
+            pic = np.array(pic, dtype=float)
+            pic /= 255
             mean_list.append(np.mean(pic, (0, 1)))
             std_list.append(np.std(pic, (0, 1)))
             row_list.append(len(pic))
@@ -200,6 +202,7 @@ def jester():
     print("mean val: ", mean)
     others_file = open(store_path + 'others.txt', 'w')
     others_file.write("mean : %.2f %.2f %.2f mean clip: %.2f\n" % (mean[0], mean[1], mean[2], mean_clip))
+    others_file.write("std : %.2f %.2f %.2f\n" % (std[0], std[1], std[2]))
     others_file.write("max row: %.2f col: %.2f clip: %.2f\n" % (max_row, max_col, max_clip))
     others_file.write("min row: %.2f col: %.2f clip: %.2f\n" % (min_row, min_col, min_clip))
 
