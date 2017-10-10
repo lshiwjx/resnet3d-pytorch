@@ -28,15 +28,15 @@ parser.add_argument('-lr_patience', default=5)
 parser.add_argument('-lr_threshold', default=0.02)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/deform_jes_l3d4")
+parser.add_argument('-log_dir', default="./runs/deform_jes_l3d3")
 parser.add_argument('-num_epoch_per_save', default=4)
-parser.add_argument('-model_saved_name', default='deform_jes_l3d4')
+parser.add_argument('-model_saved_name', default='deform_jes_l3d3')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
 
 parser.add_argument('-use_pre_trained_model', default=True)
-parser.add_argument('-pre_trained_model', default='resnet3d-18.state')
+parser.add_argument('-pre_trained_model', default='deform-resnet3d-18.state')
 parser.add_argument('-pre_class_num', default=400)
 parser.add_argument('-only_train_classifier', default=False)
 
@@ -67,16 +67,25 @@ data_set_loaders = {x: DataLoader(data_set[x],
                                   pin_memory=True)
                     for x in ['train', 'val']}
 
-model = deform_resnet3d_18.ResNet3d(args.class_num, args.clip_length, args.crop_shape)
+model = deform_resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
 
 if args.use_pre_trained_model:
-    model.fc = torch.nn.Linear(512, args.pre_class_num)
+    if args.pre_class_num != args.class_num:
+        model.fc = torch.nn.Linear(512, args.pre_class_num)
     model_dict = model.state_dict()
     pretrained_dict = torch.load(args.pre_trained_model)
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
     model_dict.update(pretrained_dict)
     model.load_state_dict(model_dict)
     print('----Pretrained model load finished: ', args.pre_trained_model)
+
+params_dict = dict(model.named_parameters())
+params = []
+for key, value in params_dict.items():
+    if key[8:16] == 'conv_off':
+        params += [{'params': [value], 'lr': 0.1 * args.lr}]
+    else:
+        params += [{'params': [value], 'lr': args.lr}]
 
 if args.only_train_classifier is True:
     print('----Only train classifier with weight decay: ', args.weight_decay_ratio)
@@ -90,7 +99,7 @@ else:
     print('----Train all params with weight decay: ', args.weight_decay_ratio)
     if args.pre_class_num != args.class_num:
         model.fc = torch.nn.Linear(512, args.class_num)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
+    optimizer = torch.optim.Adam(params, weight_decay=args.weight_decay_ratio)
     # optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,weight_decay=args.weight_decay_ratio)
 
 global_step = 0

@@ -80,16 +80,21 @@ class ResNet3d(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
+        self.layers = []
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
+        self.layers.append(x)
 
         x = self.layer1(x)
+        self.layers.append(x)
         x = self.layer2(x)
+        self.layers.append(x)
         x = self.layer3(x)
+        self.layers.append(x)
         x = self.layer4(x)
-
+        self.layers.append(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)

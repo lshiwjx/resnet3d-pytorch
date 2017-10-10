@@ -68,7 +68,8 @@ data_set_loaders = {x: DataLoader(data_set[x],
 model = resnet3d_18.ResNet3d(args.pre_class_num, args.clip_length, args.crop_shape)
 
 if args.use_pre_trained_model:
-    model.fc = torch.nn.Linear(512, args.pre_class_num)
+    if args.pre_class_num != args.class_num:
+        model.fc = torch.nn.Linear(512, args.pre_class_num)
     model_dict = model.state_dict()
     pretrained_dict = torch.load(args.pre_trained_model)
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}

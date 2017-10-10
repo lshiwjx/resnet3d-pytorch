@@ -46,7 +46,19 @@ def out_channel_show(clip, name):
 
 def out_clip_show(clip, name):
     # nclhw -> lhw
-    clip = clip[0][0]
+    clip = clip[2][0]
+    # lhw -> l1hw
+    clip = clip.unsqueeze(1)
+    out = torchvision.utils.make_grid(clip, normalize=True)
+    plt.figure(name)
+    # chw -> hwc
+    out = out.permute(1, 2, 0).numpy()
+    img_show(out)
+
+
+def off_show(clip, name):
+    # nclhw -> lhw
+    # clip = clip[1][0]
     # lhw -> l1hw
     clip = clip.unsqueeze(1)
     out = torchvision.utils.make_grid(clip, normalize=True)

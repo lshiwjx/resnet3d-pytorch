@@ -779,13 +779,14 @@ class JesterImageFolder(data.Dataset):
         # rotate_rand = random.randint(0, 3)
         # flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
         # rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
+        start_train_ratio = random.randint(0, 10)
         for i in range(self.args.clip_length):
             # path = paths[i]
             # img = Image.open(path)
             if self.is_train:
                 j = random_list[i]
                 img = Image.open(paths[j])
-                start_train = random.randint(0, img.width - self.args.crop_shape[1])
+                start_train = int((img.width - self.args.crop_shape[1]) * start_train_ratio * 0.1)
                 # img = img.resize(self.args.resize_shape)
                 box = (start_train, 0,
                        start_train + self.args.crop_shape[1],

@@ -1,32 +1,43 @@
 import torch
-from train_deform3d.deform_resnet3d_18 import ResNet3d
+from train_deform3d.deform_resnet3d_18 import DeformResNet3d
 import pandas as pd
 import os
+from train_res3d import util
+import numpy as np
 
-# model = ResNet3d(101, 16, (112, 112))
-# model_dict = model.state_dict()
+# t = torch.load('train_deform3d/off_tensor1')
+# d000 = t.cpu().data[0, :, 0, 2, 2]
+# f = t.cpu().data.numpy()
+# fm = np.max(f)
+# fmi = np.min(f)
+# a = d000.numpy()
+# a = np.reshape(a, (128, 3, 3, 3, 3))
+# for i in range(128):
+#     print(str(i) + ': ')
+#     print(a[0, 0, :, :, :])
+#     print(a[0, 1, :, :, :])
+#     print(a[0, 2, :, :, :])
 #
-# pretrained_dict = torch.load('resnet3d_finetuning_18-399-0.93.state')
-# # 1. filter out unnecessary keys
-# pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-# # 2. overwrite entries in the existing state dict
-# model_dict.update(pretrained_dict)
-# # 3. load the new state dict
-# model.load_state_dict(model_dict) 27
+# b = d000.contiguous().view(128, 3, 3, 3, 3)
+# util.off_show(b[0][0], 'off1')
+# util.off_show(b[0][1], 'off2')
+# util.off_show(b[0][2], 'off3')
+# print('none')
 
-jester_root = '/home/lshi/Database/Jester'
+
+# jester_root = '/home/lshi/Database/Jester'
 # label_csv = os.path.join(jester_root, 'jester-v1-labels.csv')
 # test_csv = os.path.join(jester_root, 'jester-v1-test.csv')
 
-train_csv = os.path.join(jester_root, 'train.csv')
-val_csv = os.path.join(jester_root, 'val.csv')
+# train_csv = os.path.join(jester_root, 'train.csv')
+# val_csv = os.path.join(jester_root, 'val.csv')
 
 # f1 = pd.read_csv(label_csv, header=None)
 # f2 = pd.read_csv(test_csv, header=None)
-f3 = pd.read_csv(train_csv, header=None)
-f4 = pd.read_csv(val_csv, header=None)
-print(f3.loc[0, 0])
-print(f3.loc[0, 1])
+# f3 = pd.read_csv(train_csv, header=None)
+# f4 = pd.read_csv(val_csv, header=None)
+# print(f3.loc[0, 0])
+# print(f3.loc[0, 1])
 # f4.loc[0, 1]=9224
 # print(f1)
 # print(f2)
