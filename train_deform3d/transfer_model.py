@@ -1,17 +1,20 @@
+"""
+    convert model dict to another model dict with different key name 
+"""
 import torch
-from train_deform3d.deform_resnet3d_18 import DeformResNet3d
+from train_res3d.resnet3d_18 import DeformResNet3d
 
 model = DeformResNet3d(27, 32, (100, 100))
 # p = list(model.parameters())
 # pp = dict(model.named_parameters())
-params_dict = dict(model.named_parameters())
-params = []
-for key, value in params_dict.items():
-    if key[8:16] == 'conv_off':
-        params += [{'params': [value], 'lr': 0.01}]
-    else:
-        params += [{'params': [value], 'lr': 0.1}]
-optimizer = torch.optim.Adam(params, weight_decay=0.0001)
+# params_dict = dict(model.named_parameters())
+# params = []
+# for key, value in params_dict.items():
+#     if key[8:16] == 'conv_off':
+#         params += [{'params': [value], 'lr': 0.01}]
+#     else:
+#         params += [{'params': [value], 'lr': 0.1}]
+# optimizer = torch.optim.Adam(params, weight_decay=0.0001)
 
 model_dict = model.state_dict()
 another_dict = {}

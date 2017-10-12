@@ -53,7 +53,7 @@ data_set = dataset.JesterImageFolder(False, args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=8, drop_last=True)
 
 # model = resnet3d.resnet18(args.class_num, args.clip_length, args.crop_shape)
-model = resnet3d_18.ResNet3d(args.class_num, args.clip_length, args.crop_shape)
+model = resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
 model.load_state_dict(torch.load(args.pre_trained_model))
 print('Pretrained model load finished: ', args.pre_trained_model)
 

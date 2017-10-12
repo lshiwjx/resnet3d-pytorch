@@ -5,7 +5,7 @@ import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from train_deform3d import deform_resnet3d_18
+from train_res3d import resnet3d_18
 from data_set import dataset
 from train_res3d import util
 import numpy as np
@@ -14,12 +14,12 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('-pre_class_num', default=27)
 parser.add_argument('-class_num', default=27)
-parser.add_argument('-batch_size', default=1)
+parser.add_argument('-batch_size', default=2)
 parser.add_argument('-clip_length', default=32)
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-weight_decay_ratio', default=5e-4)
 
-parser.add_argument('-pre_trained_model', default='deform_jes_l3d1.state')
+parser.add_argument('-pre_trained_model', default='deform_jes_l3d2_10lr-77805.state')
 parser.add_argument('-use_pre_trained_model', default=True)
 
 parser.add_argument('-mean', default=[0.45, 0.43, 0.41])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
@@ -29,11 +29,12 @@ parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 # parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[100, 100])
 parser.add_argument('-device_id', default=[0])
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 args = parser.parse_args()
 
 # data_dir = '/home/lshi/Database/UCF-101/val/'
-data_set = dataset.JesterImageFolder(False, args)
+data_set = dataset.JesterImageFolder('test', args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=4)
 data_set_classes = data_set.classes
 
@@ -47,7 +48,7 @@ clip, labels = next(iter(data_set_loaders))
 util.in_batch_show(clip, labels, data_set_classes, 'input batch')
 util.in_clip_show(clip, labels, data_set_classes, 'input clip')
 
-model = deform_resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
+model = resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
 if args.use_pre_trained_model:
     model.fc = torch.nn.Linear(512, args.pre_class_num)
     model_dict = model.state_dict()
@@ -69,9 +70,9 @@ model.cuda()
 model.train()
 clip, labels = Variable(clip).float().cuda(), Variable(labels).cuda()
 outputs, layers = model(clip)
-# loss = loss_function(outputs, labels)
-# loss.backward()
-# optimizer.step()
+loss = loss_function(outputs, labels)
+loss.backward()
+optimizer.step()
 o = outputs.cpu().data.numpy()
 # for i in range(5):
 #     l = layers[i].cpu().data
@@ -79,19 +80,6 @@ o = outputs.cpu().data.numpy()
 #     util.out_channel_show(l, 'channel layer ' + str(i))
 # util.out_clip_show(l, 'clip layer ' + str(i))
 
-# l1 = layers[0].cpu().data[1][0]
-# util.off_show(l1, 'off1')
-# l2 = layers[0].cpu().data[2][0]
-# util.off_show(l2, 'off2')
-# a = np.array(l1)
-# print(a)
+
 torch.save(layers[1], 'off_tensor1')
-d000 = layers[1].cpu().data[0, :, 0, 0, 0]
-a = d000.numpy()
-a = np.reshape(a, (32, 3, 3, 3, 3))
-print(a[0, 0, :, :, :])
-print(a[0, 1, :, :, :])
-print(a[0, 2, :, :, :])
-b = layers[0].cpu().data
-util.out_clip_show(b, 'layer')
 print('none')

@@ -1,6 +1,5 @@
 import os
 import random
-
 import PIL.ImageEnhance as ie
 import numpy as np
 import pandas as pd
@@ -9,24 +8,7 @@ import pandas as pd
 import torch.utils.data as data
 from PIL import Image  # Replace by accimage when ready
 # from torchvision import transforms
-
 from data_set.pre_process import PowerPIL
-
-IMG_EXTENSIONS = [
-    '.jpg', '.JPG', '.jpeg', '.JPEG',
-    '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP',
-]
-
-
-def is_image_file(filename):
-    return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
-
-
-def find_classes(root):
-    classes = [cls for cls in os.listdir(root) if os.path.isdir(os.path.join(root, cls))]
-    classes.sort()
-    class_to_idx = {classes[i]: i for i in range(len(classes))}
-    return classes, class_to_idx
 
 
 def make_dataset(root, class_to_idx):
@@ -42,10 +24,9 @@ def make_dataset(root, class_to_idx):
             if not os.path.isdir(imgs):
                 continue
             for img in sorted(os.listdir(imgs)):
-                if is_image_file(img):
-                    path = os.path.join(imgs, img)
-                    item = (path, class_to_idx[cls])
-                    clip.append(item)
+                path = os.path.join(imgs, img)
+                item = (path, class_to_idx[cls])
+                clip.append(item)
             if len(clip) == 0:
                 print('dir is empty: ', imgs)
             else:
@@ -467,7 +448,6 @@ class EGOImageFolderAugment(data.Dataset):
         return len(self.clips)
 
 
-# with pillow
 def make_ego_dataset_pillow(root):
     data_path = os.path.join(root, 'images')
     label_path = os.path.join(root, 'labels')
@@ -587,7 +567,6 @@ class EGOImageFolderPillow(data.Dataset):
         return len(self.clips)
 
 
-# with pillow
 def make_cha_dataset_pillow(root, is_train):
     if is_train:
         f = open(os.path.join(root, '../train_list'))
@@ -702,15 +681,16 @@ class CHAImageFolderPillow(data.Dataset):
         return len(self.clips)
 
 
-# with pillow
-def make_jester_dataset(jester_root, is_train):
-    if is_train:
+def make_jester_dataset(jester_root, mode):
+    if mode == 'train':
         f = pd.read_csv(os.path.join(jester_root, 'train.csv'), header=None)
-        # f = pd.read_csv(os.path.join(jester_root, 'val.csv'), header=None)
-    else:
+    elif mode == 'val':
         f = pd.read_csv(os.path.join(jester_root, 'val.csv'), header=None)
+    else:
+        f = pd.read_csv(os.path.join(jester_root, 'model_test.csv'), header=None)
     clips = []
     # make clips
+    print('clip preparing.....')
     for i in range(len(f)):
         img_dirs = os.path.join(jester_root, '20bn-jester-v1', str(f.loc[i, 0]))
         label = f.loc[i, 1]
@@ -719,45 +699,22 @@ def make_jester_dataset(jester_root, is_train):
         for img in imgs:
             clip.append(os.path.join(img_dirs, img))
         clips.append((clip, int(label)))
-        # clips.append((clip, int(label)))
     return clips
 
 
 class JesterImageFolder(data.Dataset):
-    """A generic data loader where the clips are arranged in this way: ::
-
-        root/class/clip/xxx.jpg
-
-    Args:
-        root (string): Root directory path.
-
-     Attributes:
-        clips (list): List of (image path, class_index) tuples
-    """
-
-    def __init__(self, is_train, args):
+    def __init__(self, mode, args):
         jester_root = '/home/lshi/Database/Jester/'
-        clips = make_jester_dataset(jester_root, is_train)
-        print('clips prepare finished for ', jester_root)
+        clips = make_jester_dataset(jester_root, mode)
+        print('clips prepare finished for ', jester_root, '  ', mode)
         if len(clips) == 0:
-            raise (RuntimeError("Found 0 clips in subfolders of: " + jester_root +
-                                "\nSupported image extensions are: " + ",".join(IMG_EXTENSIONS)))
-        # TODO
-        self.root = jester_root
+            raise (RuntimeError("Found 0 clips"))
         self.clips = clips  # path of data
         self.classes = [x for x in range(args.class_num)]
-        self.is_train = is_train
+        self.mode = mode
         self.args = args
 
     def __getitem__(self, index):
-        """
-        It is a little slow because of the preprocess
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (image, label) where label is class_index of the label class.
-        """
         paths, label = self.clips[index]
         while len(paths) < self.args.clip_length:
             tmp = []
@@ -765,50 +722,25 @@ class JesterImageFolder(data.Dataset):
             paths = tmp
         interval = len(paths) // self.args.clip_length
         uniform_list = [i * interval for i in range(self.args.clip_length)]
-        # random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
-        random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
-        # contrast = random.randint(5, 10) * 0.1
-        # sharp = random.randint(5, 15) * 0.1
-        # bright = random.randint(5, 10) * 0.1
-        # color = random.randint(5, 10) * 0.1
+        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        # random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
         clip = []
-        # pre processions are same for a clip
-        # start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
-        # start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
-        # flip_rand = random.randint(0, 2)
-        # rotate_rand = random.randint(0, 3)
-        # flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
-        # rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
         start_train_ratio = random.randint(0, 10)
         for i in range(self.args.clip_length):
-            # path = paths[i]
-            # img = Image.open(path)
-            if self.is_train:
+            if self.mode == 'train':
                 j = random_list[i]
                 img = Image.open(paths[j])
                 start_train = int((img.width - self.args.crop_shape[1]) * start_train_ratio * 0.1)
-                # img = img.resize(self.args.resize_shape)
                 box = (start_train, 0,
                        start_train + self.args.crop_shape[1],
                        self.args.crop_shape[0]
                        )
-                # left up right bottom
                 img = img.crop(box)
-                # img = ie.Contrast(img).enhance(contrast)
-                # img = ie.Color(img).enhance(color)
-                # img = ie.Brightness(img).enhance(bright)
-                # img = ie.Sharpness(img).enhance(sharp)
-                # if rotate_rand != 3:
-                #     img = img.transpose(rotate[rotate_rand])
-                # if flip_rand != 2:
-                #     img = img.transpose(flip[flip_rand])
                 img = np.array(img, dtype=float)
                 img = (img / 255 - self.args.mean) / self.args.std
-                # img -= self.args.mean
             else:
                 j = uniform_list[i]
                 img = Image.open(paths[j])
-                # img = img.resize(self.args.resize_shape)
                 start_val = (img.width - self.args.crop_shape[1]) // 2
                 box = (start_val, 0, start_val +
                        self.args.crop_shape[1],
@@ -826,110 +758,77 @@ class JesterImageFolder(data.Dataset):
         return len(self.clips)
 
 
-def make_jester_dataset_over(jester_root, is_train, clip_length):
-    if is_train:
+def make_jester_dataset_lstm(jester_root, mode, clip_length, overlap):
+    if mode == 'train':
         f = pd.read_csv(os.path.join(jester_root, 'train.csv'), header=None)
-    else:
+    elif mode == 'val':
         f = pd.read_csv(os.path.join(jester_root, 'val.csv'), header=None)
-    clips = []
-    # make clips
+    else:
+        f = pd.read_csv(os.path.join(jester_root, 'model_test.csv'), header=None)
+    videos = []
+    # make videos
     for i in range(len(f)):
         img_dirs = os.path.join(jester_root, '20bn-jester-v1', str(f.loc[i, 0]))
         label = f.loc[i, 1]
         imgs = sorted(os.listdir(img_dirs))
+        while len(imgs) < 70:
+            imgs.append(imgs[-1])
         clip = []
+        video = []
         for img in imgs:
             clip.append(os.path.join(img_dirs, img))
             if len(clip) == clip_length:
-                clips.append((clip, int(label)))
-                clip = clip[len(clip) // 2:]  # overlap
+                video.append(clip)
+                clip = clip[overlap:]  # overlap
         if len(clip) is not 0:
-            clips.append((clip, int(label)))
-    return clips
+            for _ in range(clip_length - len(clip)):
+                clip.append(clip[-1])
+            video.append(clip)
+        videos.append((video, int(label)))
+    return videos
 
 
-class JesterImageFolderOver(data.Dataset):
-    """A generic data loader where the clips are arranged in this way: ::
-
-        root/class/clip/xxx.jpg
-
-    Args:
-        root (string): Root directory path.
-
-     Attributes:
-        clips (list): List of (image path, class_index) tuples
-    """
-
-    def __init__(self, is_train, args):
+class JesterImageFolderLstm(data.Dataset):
+    def __init__(self, mode, args):
         jester_root = '/home/lshi/Database/Jester/'
-        clips = make_jester_dataset_over(jester_root, is_train, args.clip_length)
+        clips = make_jester_dataset_lstm(jester_root, mode, args.clip_length, args.overlap)
         print('clips prepare finished for ', jester_root)
         if len(clips) == 0:
-            raise (RuntimeError("Found 0 clips in subfolders of: " + jester_root +
-                                "\nSupported image extensions are: " + ",".join(IMG_EXTENSIONS)))
-        # TODO
-        self.root = jester_root
+            raise (RuntimeError("Found 0 clips in subfolders"))
         self.clips = clips  # path of data
         self.classes = [x for x in range(args.class_num)]
-        self.is_train = is_train
+        self.mode = mode
         self.args = args
 
     def __getitem__(self, index):
-        """
-        It is a little slow because of the preprocess
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (image, label) where label is class_index of the label class.
-        """
-        paths, label = self.clips[index]
-        while len(paths) < self.args.clip_length:
-            tmp = []
-            [tmp.extend([x, x]) for x in paths]
-            paths = tmp
-        interval = len(paths) // self.args.clip_length
-        uniform_list = [i * interval for i in range(self.args.clip_length)]
-        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
-        # random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
-        clip = []
-        # pre processions are same for a clip
-        # start_train = [random.randint(0, self.args.resize_shape[j] - self.args.crop_shape[j]) for j in range(2)]
-        # start_val = [(self.args.resize_shape[j] - self.args.crop_shape[j]) // 2 for j in range(2)]
-        # flip_rand = random.randint(0, 2)
-        # rotate_rand = random.randint(0, 3)
-        # flip = [Image.FLIP_LEFT_RIGHT, Image.FLIP_TOP_BOTTOM]
-        # rotate = [Image.ROTATE_90, Image.ROTATE_180, Image.ROTATE_270]
-        for i in random_list:
-            path = paths[i]
-            img = Image.open(path)
-            if self.is_train:
-                start_train = random.randint(0, img.width - self.args.crop_shape[1])
-                # img = img.resize(self.args.resize_shape)
-                box = (0, start_train,
-                       self.args.crop_shape[0],
-                       start_train + self.args.crop_shape[1])
-                img = img.crop(box)
-                # if rotate_rand != 3:
-                #     img = img.transpose(rotate[rotate_rand])
-                # if flip_rand != 2:
-                #     img = img.transpose(flip[flip_rand])
-                img = np.array(img, dtype=float)
-                img = (img / 255 - self.args.mean) / self.args.std
-                # img -= self.args.mean
-            else:
-                # img = img.resize(self.args.resize_shape)
-                start_val = (img.width - self.args.crop_shape[1]) // 2
-                box = (0, start_val,
-                       self.args.crop_shape[0],
-                       start_val + self.args.crop_shape[1])
-                img = img.crop(box)
-                img = np.array(img, dtype=float)
-                img = (img / 255 - self.args.mean) / self.args.std
-            clip.append(img)
-        clip = np.array(clip)
-        clip = np.transpose(clip, (3, 0, 1, 2))
-        return clip, label
+        video, label = self.clips[index]
+        videos = []
+        for imgs in video:
+            clip = []
+            for path in imgs:
+                img = Image.open(path)
+                if self.mode == 'train':
+                    start_train = random.randint(0, img.width - self.args.crop_shape[1])
+                    # img = img.resize(self.args.resize_shape)
+                    box = (0, start_train,
+                           self.args.crop_shape[0],
+                           start_train + self.args.crop_shape[1])
+                    img = img.crop(box)
+                    img = np.array(img, dtype=float)
+                    img = (img / 255 - self.args.mean) / self.args.std
+                else:
+                    start_val = (img.width - self.args.crop_shape[1]) // 2
+                    box = (0, start_val,
+                           self.args.crop_shape[0],
+                           start_val + self.args.crop_shape[1])
+                    img = img.crop(box)
+                    img = np.array(img, dtype=float)
+                    img = (img / 255 - self.args.mean) / self.args.std
+                clip.append(img)
+            clip = np.array(clip)
+            clip = np.transpose(clip, (3, 0, 1, 2))
+            videos.append(clip)
+        return np.array(videos), label
 
     def __len__(self):
         return len(self.clips)

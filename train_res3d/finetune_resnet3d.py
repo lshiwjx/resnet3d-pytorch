@@ -22,7 +22,7 @@ parser.add_argument('-max_epoch', default=30)
 
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-lr_decay_ratio', default=0.1)
-parser.add_argument('-lr_patience', default=5)
+parser.add_argument('-lr_patience', default=3)
 parser.add_argument('-lr_threshold', default=0.02)
 parser.add_argument('-lr_delay', default=1)
 

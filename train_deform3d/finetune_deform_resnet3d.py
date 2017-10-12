@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from data_set import dataset
 from train_res3d import train_val_model
-from train_deform3d import deform_resnet3d_18
+from train_res3d import resnet3d_18
 
 # params
 parser = argparse.ArgumentParser()
@@ -24,13 +24,13 @@ parser.add_argument('-max_epoch', default=40)
 
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-lr_decay_ratio', default=0.1)
-parser.add_argument('-lr_patience', default=5)
+parser.add_argument('-lr_patience', default=3)
 parser.add_argument('-lr_threshold', default=0.02)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/deform_jes_l3d3")
+parser.add_argument('-log_dir', default="./runs/deform_jes_l3b")
 parser.add_argument('-num_epoch_per_save', default=4)
-parser.add_argument('-model_saved_name', default='deform_jes_l3d3')
+parser.add_argument('-model_saved_name', default='deform_jes_l3b')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
@@ -56,9 +56,7 @@ if os.path.isdir(args.log_dir) and not args.use_last_model:
     print('Dir removed: ', args.log_dir)
 configure(args.log_dir)
 
-# Date reading, setting for batch size, whether shuffle, num_workers
-# data_dir = '/home/lshi/Database/UCF-101/'
-data_set = {x: dataset.JesterImageFolder((x is 'train'), args) for x in ['train', 'val']}
+data_set = {x: dataset.JesterImageFolder(x, args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x],
                                   batch_size=args.batch_size,
                                   shuffle=False,
@@ -67,7 +65,7 @@ data_set_loaders = {x: DataLoader(data_set[x],
                                   pin_memory=True)
                     for x in ['train', 'val']}
 
-model = deform_resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
+model = resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
 
 if args.use_pre_trained_model:
     if args.pre_class_num != args.class_num:
