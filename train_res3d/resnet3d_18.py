@@ -77,21 +77,24 @@ class DeformBasicBlock1(nn.Module):
         self.layers = []
 
     def forward(self, x):
+        self.layers = []
         residual = x
 
         off1 = self.conv_off1(x)
+        # self.layers.append(off1)
         out = self.conv1(x, off1)
         out = self.bn1(out)
         out = self.relu(out)
 
         off2 = self.conv_off2(x)
+        # self.layers.append(off2)
         out = self.conv2(out, off2)
         out = self.bn2(out)
 
         out += residual
         out = self.relu(out)
 
-        return out
+        return out, self.layers
 
 
 class DownsampleBlock(nn.Module):
@@ -161,24 +164,26 @@ class DeformDownsampleBlock1(nn.Module):
                                   channel_per_group=channel_per_group)
         self.bn1 = nn.BatchNorm3d(channel)
         self.relu = nn.ReLU(inplace=True)
-        self.conv_off2 = nn.Conv3d(channel_in, channel_in // channel_per_group * 3 * 27, kernel_size=3, stride=1,
+        self.conv_off2 = nn.Conv3d(channel, channel // channel_per_group * 3 * 27, kernel_size=3, stride=1,
                                    padding=1, bias=True)
-        self.conv2 = ConvOffset3d(channel, channel, kernel_size=3, stride=1, padding=1)
+        self.conv2 = ConvOffset3d(channel, channel, kernel_size=3, stride=1, padding=1,
+                                  channel_per_group=channel_per_group)
         self.bn2 = nn.BatchNorm3d(channel)
         self.downsample = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
         self.layers = []
 
     def forward(self, x):
+        self.layers = []
         residual = self.downsample(x)
         # s = x.data.numpy()
         off1 = self.conv_off1(x)
-        self.layers.append(off1)
+        # self.layers.append(off1)
         out = self.conv1(x, off1)
         out = self.bn1(out)
         out = self.relu(out)
 
         off2 = self.conv_off2(out)
-        self.layers.append(off1)
+        # self.layers.append(off2)
         out = self.conv2(out, off2)
         out = self.bn2(out)
 
@@ -284,8 +289,8 @@ class DeformResNet3d(nn.Module):
         x = self.layer21(x)
         # self.layers.append(x)
         x = self.layer30(x)
-        x = self.layer31(x)
-        # self.layers.append(x)
+        x, y = self.layer31(x)
+        # self.layers = y
 
         x = self.layer40(x)
         x = self.layer41(x)

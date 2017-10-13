@@ -13,13 +13,13 @@ from train_res3d import util
 parser = argparse.ArgumentParser()
 parser.add_argument('-pre_class_num', default=27)
 parser.add_argument('-class_num', default=27)
-parser.add_argument('-batch_size', default=4)
+parser.add_argument('-batch_size', default=32)
 parser.add_argument('-clip_length', default=70)
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-weight_decay_ratio', default=5e-4)
 
 parser.add_argument('-pre_trained_model', default='jester_std32_base_0.9046-14800.state')
-parser.add_argument('-use_pre_trained_model', default=True)
+parser.add_argument('-use_pre_trained_model', default=False)
 
 parser.add_argument('-mean', default=[0.45, 0.43, 0.41])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
 parser.add_argument('-std', default=[0.23, 0.24, 0.23])
@@ -28,11 +28,12 @@ parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 # parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[100, 100])
 parser.add_argument('-device_id', default=[0])
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 args = parser.parse_args()
 
 # data_dir = '/home/lshi/Database/UCF-101/val/'
-data_set = dataset.JesterImageFolder(False, args)
+data_set = dataset.JesterImageFolder('test', args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=4, drop_last=True)
 data_set_classes = data_set.classes
 
@@ -43,10 +44,10 @@ data_set_classes = data_set.classes
 # show input
 clip, labels = next(iter(data_set_loaders))
 
-util.in_batch_show(clip, labels, data_set_classes, 'input batch')
-util.in_clip_show(clip, labels, data_set_classes, 'input clip')
+# util.in_batch_show(clip, labels, data_set_classes, 'input batch')
+# util.in_clip_show(clip, labels, data_set_classes, 'input clip')
 
-model = resnet3d_18.ResNet3d(args.class_num, args.clip_length, args.crop_shape)
+model = resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
 
 if args.use_pre_trained_model:
     if args.pre_class_num != args.class_num:
@@ -60,6 +61,7 @@ if args.use_pre_trained_model:
 
 if args.pre_class_num != args.class_num:
     model.fc = torch.nn.Linear(512, args.class_num)
+
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
 loss_function = torch.nn.CrossEntropyLoss(size_average=True)
 

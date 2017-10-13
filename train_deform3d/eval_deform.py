@@ -23,10 +23,10 @@ parser = argparse.ArgumentParser()
 # parser.add_argument('-class_num', default=83)
 parser.add_argument('-class_num', default=27)
 
-parser.add_argument('-batch_size', default=4)
+parser.add_argument('-batch_size', default=16)
 
 # parser.add_argument('-pre_trained_model', default='resnet3d_max_18-14975.state')
-parser.add_argument('-pre_trained_model', default='jester_std32_base_0.9046-14800.state')
+parser.add_argument('-pre_trained_model', default='deform_jes_l3b-15742.state')
 
 # parser.add_argument('-clip_length', default=32)
 # parser.add_argument('-resize_shape', default=[240, 320])
@@ -40,7 +40,7 @@ parser.add_argument('-mean', default=[0.45, 0.43, 0.41])  # cha[124,108,115]ego[
 parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 
 parser.add_argument('-device_id', default=[0])
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '5,4,2,1'
 # parser.add_argument('-device_id', default=[0])
 
@@ -49,7 +49,7 @@ args = parser.parse_args()
 # data_dir = '/home/lshi/Database/Ego_gesture/val/'
 # data_set = dataset.EGOImageFolderPillow(data_dir, False, args)
 # data_dir = '/home/lshi/Database/UCF-101/val/'
-data_set = dataset.JesterImageFolder(False, args)
+data_set = dataset.JesterImageFolder('val', args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=8, drop_last=True)
 
 # model = resnet3d.resnet18(args.class_num, args.clip_length, args.crop_shape)

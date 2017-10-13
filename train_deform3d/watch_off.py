@@ -5,7 +5,7 @@ import torch
 from train_res3d import util
 import numpy as np
 
-t = torch.load('off_tensor1')
+t = torch.load('off_tensor_b32')
 d000 = t.cpu().data[0, :, 0, 2, 2]
 f = t.cpu().data.numpy()
 fm = np.max(f)
