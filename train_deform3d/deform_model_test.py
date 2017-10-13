@@ -14,12 +14,12 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('-pre_class_num', default=27)
 parser.add_argument('-class_num', default=27)
-parser.add_argument('-batch_size', default=4)
+parser.add_argument('-batch_size', default=2)
 parser.add_argument('-clip_length', default=32)
 parser.add_argument('-lr', default=0.001)
 parser.add_argument('-weight_decay_ratio', default=5e-4)
 
-parser.add_argument('-pre_trained_model', default='deform_jes_l3b-8334.state')
+parser.add_argument('-pre_trained_model', default='deform_jes_l3b-15742.state')
 parser.add_argument('-use_pre_trained_model', default=False)
 
 parser.add_argument('-mean', default=[0.45, 0.43, 0.41])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
@@ -29,12 +29,12 @@ parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 # parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[100, 100])
 parser.add_argument('-device_id', default=[0])
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 args = parser.parse_args()
 
 # data_dir = '/home/lshi/Database/UCF-101/val/'
-data_set = dataset.JesterImageFolder('test', args)
+data_set = dataset.JesterImageFolder('model_test', args)
 data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=4)
 data_set_classes = data_set.classes
 
@@ -70,9 +70,9 @@ model.cuda()
 model.train()
 clip, labels = Variable(clip).float().cuda(), Variable(labels).cuda()
 outputs, layers = model(clip)
-loss = loss_function(outputs, labels)
-loss.backward()
-optimizer.step()
+# loss = loss_function(outputs, labels)
+# loss.backward()
+# optimizer.step()
 o = outputs.cpu().data.numpy()
 # for i in range(5):
 #     l = layers[i].cpu().data

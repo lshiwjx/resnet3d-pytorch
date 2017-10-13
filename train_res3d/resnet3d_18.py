@@ -81,13 +81,13 @@ class DeformBasicBlock1(nn.Module):
         residual = x
 
         off1 = self.conv_off1(x)
-        # self.layers.append(off1)
+        self.layers.append(off1)
         out = self.conv1(x, off1)
         out = self.bn1(out)
         out = self.relu(out)
 
         off2 = self.conv_off2(x)
-        # self.layers.append(off2)
+        self.layers.append(off2)
         out = self.conv2(out, off2)
         out = self.bn2(out)
 
@@ -290,7 +290,7 @@ class DeformResNet3d(nn.Module):
         # self.layers.append(x)
         x = self.layer30(x)
         x, y = self.layer31(x)
-        # self.layers = y
+        self.layers = y
 
         x = self.layer40(x)
         x = self.layer41(x)

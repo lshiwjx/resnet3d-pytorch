@@ -832,3 +832,59 @@ class JesterImageFolderLstm(data.Dataset):
 
     def __len__(self):
         return len(self.clips)
+
+
+def make_jester_dataset_test(jester_root, f):
+    clips = []
+    # make clips
+    print('clip preparing.....')
+    for i in range(len(f)):
+        img_dirs = os.path.join(jester_root, '20bn-jester-v1', str(f.loc[i, 0]))
+        imgs = sorted(os.listdir(img_dirs))
+        clip = []
+        for img in imgs:
+            clip.append(os.path.join(img_dirs, img))
+        clips.append(clip)
+    return clips
+
+
+class JesterImageFolderTest(data.Dataset):
+    def __init__(self, f, args):
+        jester_root = '/home/lshi/Database/Jester/'
+        clips = make_jester_dataset_test(jester_root, f)
+        print('clips prepare finished')
+        if len(clips) == 0:
+            raise (RuntimeError("Found 0 clips"))
+        self.clips = clips  # path of data
+        self.classes = [x for x in range(args.class_num)]
+        self.args = args
+
+    def __getitem__(self, index):
+        paths = self.clips[index]
+        while len(paths) < self.args.clip_length:
+            tmp = []
+            [tmp.extend([x, x]) for x in paths]
+            paths = tmp
+        interval = len(paths) // self.args.clip_length
+        uniform_list = [i * interval for i in range(self.args.clip_length)]
+        # random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        # random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
+        clip = []
+        for i in range(self.args.clip_length):
+            j = uniform_list[i]
+            img = Image.open(paths[j])
+            start_val = (img.width - self.args.crop_shape[1]) // 2
+            box = (start_val, 0, start_val +
+                   self.args.crop_shape[1],
+                   self.args.crop_shape[0]
+                   )
+            img = img.crop(box)
+            img = np.array(img, dtype=float)
+            img = (img / 255 - self.args.mean) / self.args.std
+            clip.append(img)
+        clip = np.array(clip)
+        clip = np.transpose(clip, (3, 0, 1, 2))
+        return clip
+
+    def __len__(self):
+        return len(self.clips)
