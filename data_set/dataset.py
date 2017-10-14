@@ -567,7 +567,7 @@ class EGOImageFolderPillow(data.Dataset):
         return len(self.clips)
 
 
-def make_cha_dataset_pillow(root, is_train):
+def make_cha_dataset(root, is_train):
     if is_train:
         f = open(os.path.join(root, '../train_list'))
     else:
@@ -590,20 +590,9 @@ def make_cha_dataset_pillow(root, is_train):
     return clips
 
 
-class CHAImageFolderPillow(data.Dataset):
-    """A generic data loader where the clips are arranged in this way: ::
-
-        root/class/clip/xxx.jpg
-
-    Args:
-        root (string): Root directory path.
-
-     Attributes:
-        clips (list): List of (image path, class_index) tuples
-    """
-
+class CHAImageFolder(data.Dataset):
     def __init__(self, root, is_train, args):
-        clips = make_cha_dataset_pillow(root, is_train)
+        clips = make_cha_dataset(root, is_train)
         print('clips prepare finished for ', root)
         if len(clips) == 0:
             raise (RuntimeError("Found 0 clips in subfolders of: " + root +
@@ -661,19 +650,17 @@ class CHAImageFolderPillow(data.Dataset):
                 img = ie.Color(img).enhance(color)
                 img = ie.Brightness(img).enhance(bright)
                 img = ie.Sharpness(img).enhance(sharp)
-                img = np.array(img, dtype=float)
-                img -= self.args.mean
-                img /= 255
+                img = np.array(img)
+                img = (img / 255 - self.args.mean) / self.args.std
             else:
                 img = img.resize(self.args.resize_shape)
                 img = img.crop((start_val[0], start_val[1],
                                 start_val[0] + self.args.crop_shape[0],
                                 start_val[1] + self.args.crop_shape[1]))
-                img = np.array(img, dtype=float)
-                img -= self.args.mean
-                img /= 255
+                img = np.array(img)
+                img = (img / 255 - self.args.mean) / self.args.std
             clip.append(img)
-        clip = np.array(clip)
+        clip = np.array(clip, dtype=np.float32)
         clip = np.transpose(clip, (3, 0, 1, 2))
         return clip, label
 
@@ -736,7 +723,7 @@ class JesterImageFolder(data.Dataset):
                        self.args.crop_shape[0]
                        )
                 img = img.crop(box)
-                img = np.array(img, dtype=float)
+                img = np.array(img)
                 img = (img / 255 - self.args.mean) / self.args.std
             else:
                 j = uniform_list[i]
@@ -747,10 +734,10 @@ class JesterImageFolder(data.Dataset):
                        self.args.crop_shape[0]
                        )
                 img = img.crop(box)
-                img = np.array(img, dtype=float)
+                img = np.array(img)
                 img = (img / 255 - self.args.mean) / self.args.std
             clip.append(img)
-        clip = np.array(clip)
+        clip = np.array(clip, dtype=np.float32)
         clip = np.transpose(clip, (3, 0, 1, 2))
         return clip, label
 
@@ -814,7 +801,7 @@ class JesterImageFolderLstm(data.Dataset):
                            self.args.crop_shape[0],
                            start_train + self.args.crop_shape[1])
                     img = img.crop(box)
-                    img = np.array(img, dtype=float)
+                    img = np.array(img)
                     img = (img / 255 - self.args.mean) / self.args.std
                 else:
                     start_val = (img.width - self.args.crop_shape[1]) // 2
@@ -822,10 +809,10 @@ class JesterImageFolderLstm(data.Dataset):
                            self.args.crop_shape[0],
                            start_val + self.args.crop_shape[1])
                     img = img.crop(box)
-                    img = np.array(img, dtype=float)
+                    img = np.array(img)
                     img = (img / 255 - self.args.mean) / self.args.std
                 clip.append(img)
-            clip = np.array(clip)
+            clip = np.array(clip, dtype=np.float32)
             clip = np.transpose(clip, (3, 0, 1, 2))
             videos.append(clip)
         return np.array(videos), label
@@ -879,10 +866,10 @@ class JesterImageFolderTest(data.Dataset):
                    self.args.crop_shape[0]
                    )
             img = img.crop(box)
-            img = np.array(img, dtype=float)
+            img = np.array(img)
             img = (img / 255 - self.args.mean) / self.args.std
             clip.append(img)
-        clip = np.array(clip)
+        clip = np.array(clip, dtype=np.float32)
         clip = np.transpose(clip, (3, 0, 1, 2))
         return clip
 
