@@ -193,6 +193,39 @@ class DeformDownsampleBlock1(nn.Module):
         return out
 
 
+class DeformDownsampleBlock2(nn.Module):
+    def __init__(self, channel_in, channel, channel_per_group):
+        super(DeformDownsampleBlock2, self).__init__()
+        self.conv1 = nn.Conv3d(channel_in, channel, kernel_size=3, stride=2, padding=1,
+                               bias=True)
+        self.bn1 = nn.BatchNorm3d(channel)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv_off2 = nn.Conv3d(channel, channel // channel_per_group * 3 * 27, kernel_size=3, stride=1,
+                                   padding=1, bias=True)
+        self.conv2 = ConvOffset3d(channel, channel, kernel_size=3, stride=1, padding=1,
+                                  channel_per_group=channel_per_group)
+        self.bn2 = nn.BatchNorm3d(channel)
+        self.downsample = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
+        self.layers = []
+
+    def forward(self, x):
+        self.layers = []
+        residual = self.downsample(x)
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        off2 = self.conv_off2(out)
+        # self.layers.append(off2)
+        out = self.conv2(out, off2)
+        out = self.bn2(out)
+
+        out += torch.cat((residual, residual), 1)
+        out = self.relu(out)
+
+        return out
+
+
 class ResNet3d(nn.Module):
     def __init__(self, num_classes, clip_length, crop_shape):
         super(ResNet3d, self).__init__()
@@ -255,7 +288,7 @@ class DeformResNet3d(nn.Module):
         self.layer11 = BasicBlock(64)
         self.layer20 = DownsampleBlock(64, 128)
         self.layer21 = BasicBlock(128)
-        self.layer30 = DownsampleBlock(128, 256)
+        self.layer30 = DeformDownsampleBlock2(128, 256, 2)
         self.layer31 = DeformBasicBlock1(256, 2)
         self.layer40 = DownsampleBlock(256, 512)
         self.layer41 = BasicBlock(512)

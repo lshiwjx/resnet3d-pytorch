@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 f = pd.read_csv('/home/lshi/Database/Jester/jester-v1-test.csv', header=None)
 data_set = dataset.JesterImageFolderTest(f, args)
-data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=10, drop_last=True)
+data_set_loaders = DataLoader(data_set, batch_size=args.batch_size, shuffle=False, num_workers=10, drop_last=False)
 
 model = resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
 model.load_state_dict(torch.load(args.pre_trained_model))
@@ -44,7 +44,7 @@ for data in data_set_loaders:
     for j in label:
         f.loc[i, 1] = int(j)
         # tmp = f.loc[i]
-        print('now for i', f.loc[i, 0], f.loc[i, 1])
+        print('now for ', i, f.loc[i, 0], f.loc[i, 1])
         i += 1
 
 f.to_csv('/home/lshi/Database/Jester/result.csv', header=None, index=None)

@@ -17,7 +17,7 @@ from train_res3d import resnet3d_18
 # params
 parser = argparse.ArgumentParser()
 parser.add_argument('-class_num', default=27)
-parser.add_argument('-batch_size', default=128)
+parser.add_argument('-batch_size', default=64)
 parser.add_argument('-weight_decay_ratio', default=5e-4)
 parser.add_argument('-momentum', default=0.9)
 parser.add_argument('-max_epoch', default=40)
@@ -28,16 +28,16 @@ parser.add_argument('-lr_patience', default=3)
 parser.add_argument('-lr_threshold', default=0.02)
 parser.add_argument('-lr_delay', default=1)
 
-parser.add_argument('-log_dir', default="./runs/deform_jes_l3db")
+parser.add_argument('-log_dir', default="./runs/deform_jes_l33b")
 parser.add_argument('-num_epoch_per_save', default=4)
-parser.add_argument('-model_saved_name', default='deform_jes_l3db')
+parser.add_argument('-model_saved_name', default='deform_jes_l33b')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
 
 parser.add_argument('-use_pre_trained_model', default=True)
-parser.add_argument('-pre_trained_model', default='deform-resnet3d-18.state')
-parser.add_argument('-pre_class_num', default=400)
+parser.add_argument('-pre_trained_model', default='deform_jes_l3b-15742.state')
+parser.add_argument('-pre_class_num', default=27)
 parser.add_argument('-only_train_classifier', default=False)
 
 parser.add_argument('-clip_length', default=32)
