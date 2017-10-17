@@ -9,7 +9,7 @@ import torch.utils.data as data
 from PIL import Image  # Replace by accimage when ready
 # from torchvision import transforms
 from data_set.pre_process import PowerPIL
-
+from scipy.stats import truncnorm
 
 def make_dataset(root, class_to_idx):
     clips = []
@@ -670,8 +670,10 @@ class CHAImageFolder(data.Dataset):
 
 def make_jester_dataset(jester_root, mode):
     if mode == 'train':
+        # f = pd.read_csv(os.path.join(jester_root, 'model_test.csv'), header=None)
         f = pd.read_csv(os.path.join(jester_root, 'train.csv'), header=None)
     elif mode == 'val':
+        # f = pd.read_csv(os.path.join(jester_root, 'model_test.csv'), header=None)
         f = pd.read_csv(os.path.join(jester_root, 'val.csv'), header=None)
     else:
         f = pd.read_csv(os.path.join(jester_root, 'model_test.csv'), header=None)
@@ -689,6 +691,7 @@ def make_jester_dataset(jester_root, mode):
     return clips
 
 
+# TODO: change the other method the same as this
 class JesterImageFolder(data.Dataset):
     def __init__(self, mode, args):
         jester_root = '/home/lshi/Database/Jester/'
@@ -707,17 +710,19 @@ class JesterImageFolder(data.Dataset):
             tmp = []
             [tmp.extend([x, x]) for x in paths]
             paths = tmp
-        interval = len(paths) // self.args.clip_length
-        uniform_list = [i * interval for i in range(self.args.clip_length)]
-        random_list = sorted([uniform_list[i] + random.randint(0, interval - 1) for i in range(self.args.clip_length)])
+        interval = len(paths) / self.args.clip_length
+        uniform_list = [int(i * interval) for i in range(self.args.clip_length)]
+        random_list = sorted(
+            [uniform_list[i] + random.randint(0, int(interval) - 1) for i in range(self.args.clip_length)])
         # random_list = sorted([random.randint(0, len(paths) - 1) for _ in range(self.args.clip_length)])
+        # truncated_norm_list = sorted(truncnorm(a=(0-16)/16, b=(32-16)/16, loc=16, scale=16).rvs(size=32).round().astype(int)
         clip = []
-        start_train_ratio = random.randint(0, 10)
+        start_train_ratio = random.random()
         for i in range(self.args.clip_length):
             if self.mode == 'train':
                 j = random_list[i]
                 img = Image.open(paths[j])
-                start_train = int((img.width - self.args.crop_shape[1]) * start_train_ratio * 0.1)
+                start_train = int((img.width - self.args.crop_shape[1]) * start_train_ratio)
                 box = (start_train, 0,
                        start_train + self.args.crop_shape[1],
                        self.args.crop_shape[0]

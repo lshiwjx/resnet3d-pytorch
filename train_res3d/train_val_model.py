@@ -7,18 +7,13 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
           use_gpu=True, device_id=(0, 1)):
     model.train()  # Set model to training mode
     step = global_step
-    for data in data_set_loaders:
-        inputs, labels = data
-
+    for inputs, labels in data_set_loaders:
         # wrap them in Variable
         if use_gpu:
-            inputs, labels = Variable(inputs.cuda(async=True)), \
-                             Variable(labels.float().cuda(async=True))
+            inputs, labels = Variable(inputs.cuda()), \
+                             Variable(labels.cuda())
         else:
             inputs, labels = Variable(inputs), Variable(labels)
-
-        # zero the parameter gradients
-        optimizer.zero_grad()
 
         if use_gpu:
             # use DataParallel to realize multi gpu
@@ -28,12 +23,13 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
             outputs, _ = model(inputs)
 
         loss = loss_function(outputs, labels)
-        value, predict_label = torch.max(outputs.data, 1)
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         step += 1
 
         # statistics
+        value, predict_label = torch.max(outputs.data, 1)
         ls = loss.data[0]
         acc = torch.mean((predict_label == labels.data).float())
         log_value('train_loss', ls, step)
@@ -48,13 +44,10 @@ def validate(model, data_set_loaders, loss_function, batch_size, use_gpu=True, d
     val_step = 0
     val_loss = 0
     right_num = 0
-    for data in data_set_loaders:
-        inputs, labels = data
-
-        # wrap them in Variable
+    for inputs, labels in data_set_loaders:
         if use_gpu:
-            inputs, labels = Variable(inputs.cuda(async=True)), \
-                             Variable(labels.float().cuda(async=True))
+            inputs, labels = Variable(inputs.cuda()), \
+                             Variable(labels.cuda())
         else:
             inputs, labels = Variable(inputs), Variable(labels)
         # forward
@@ -89,7 +82,7 @@ def train_lstm(cnnmodel, lstmmodel, data_set_loaders, loss_function, optimizer, 
         video, labels = data
         labels = Variable(labels.cuda(async=True))
         for clip in video:
-            clip = Variable(clip.float().cuda(async=True))
+            clip = Variable(clip.cuda(async=True))
             optimizer.zero_grad()
             output, _ = cnnmodel(clip)
             outputs.append(torch.unsqueeze(output, 0))
