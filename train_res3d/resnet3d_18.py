@@ -102,6 +102,43 @@ class DeformBasicBlock1(nn.Module):
 class DeformBasicBlock2(nn.Module):
     def __init__(self, channel, channel_per_group):
         super(DeformBasicBlock2, self).__init__()
+        self.conv_off1 = nn.Conv3d(channel, channel // (channel_per_group * 2) * 3 * 27, kernel_size=3, stride=1,
+                                   padding=1, bias=True)
+        self.conv1 = ConvOffset3d(channel, channel, kernel_size=3, stride=1, padding=1,
+                                  channel_per_group=channel_per_group * 2)
+        self.bn1 = nn.BatchNorm3d(channel)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv_off2 = nn.Conv3d(channel, channel // channel_per_group * 3 * 27, kernel_size=3, stride=1,
+                                   padding=1, bias=True)
+        self.conv2 = ConvOffset3d(channel, channel, kernel_size=3, stride=1, padding=1,
+                                  channel_per_group=channel_per_group)
+        self.bn2 = nn.BatchNorm3d(channel)
+        self.layers = []
+
+    def forward(self, x):
+        self.layers = []
+        residual = x
+
+        # off = self.conv_off1(x)
+        off = self.conv_off1(x)
+        x = self.conv1(x, off)
+        x = self.bn1(x)
+        x = self.relu(x)
+
+        # off = self.conv_off2(x)
+        off = self.conv_off2(x)
+        x = self.conv2(x, off)
+        x = self.bn2(x)
+
+        x += residual
+        x = self.relu(x)
+
+        return x, self.layers
+
+
+class DeformBasicBlockd(nn.Module):
+    def __init__(self, channel, channel_per_group):
+        super(DeformBasicBlockd, self).__init__()
         self.conv_off1 = nn.Conv3d(channel, channel, kernel_size=3, stride=1, padding=1, bias=True)
         self.conv_off11 = nn.Conv3d(channel, channel // channel_per_group * 3 * 27, kernel_size=3, stride=1,
                                     padding=1, bias=True)
@@ -330,7 +367,7 @@ class DeformResNet3d(nn.Module):
         self.layer20 = DownsampleBlock(64, 128)
         self.layer21 = BasicBlock(128)
         self.layer30 = DownsampleBlock(128, 256)
-        self.layer31 = BasicBlock(256)
+        self.layer31 = DeformBasicBlock2(256, 4)
         self.layer40 = DownsampleBlock(256, 512)
         self.layer41 = BasicBlock(512)
 
@@ -363,7 +400,7 @@ class DeformResNet3d(nn.Module):
         x = self.layer21(x)
         # self.layers.append(x)
         x = self.layer30(x)
-        x = self.layer31(x)
+        x, y = self.layer31(x)
         # self.layers = y
 
         x = self.layer40(x)

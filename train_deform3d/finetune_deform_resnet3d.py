@@ -17,7 +17,7 @@ from train_res3d import resnet3d_18
 # params
 parser = argparse.ArgumentParser()
 parser.add_argument('-class_num', default=27)
-parser.add_argument('-batch_size', default=240)
+parser.add_argument('-batch_size', default=120)
 parser.add_argument('-weight_decay_ratio', default=5e-4)
 parser.add_argument('-momentum', default=0.9)
 parser.add_argument('-max_epoch', default=40)
@@ -26,11 +26,11 @@ parser.add_argument('-lr', default=0.001)
 parser.add_argument('-lr_decay_ratio', default=0.1)
 parser.add_argument('-lr_patience', default=2)
 parser.add_argument('-lr_threshold', default=0.01)
-parser.add_argument('-lr_delay', default=1)
+parser.add_argument('-lr_delay', default=2)
 
-parser.add_argument('-log_dir', default="./runs/node_240")
+parser.add_argument('-log_dir', default="./runs/l3b84_120")
 parser.add_argument('-num_epoch_per_save', default=4)
-parser.add_argument('-model_saved_name', default='node_240')
+parser.add_argument('-model_saved_name', default='l3b84_120')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
@@ -46,8 +46,8 @@ parser.add_argument('-crop_shape', default=[100, 100])  # must be same for rotat
 parser.add_argument('-mean', default=[0.45, 0.43, 0.41])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
 parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 
-parser.add_argument('-device_id', default=[0, 1, 2, 3])
-os.environ['CUDA_VISIBLE_DEVICES'] = '7,6,5,4'
+parser.add_argument('-device_id', default=[0, 1, 2])
+os.environ['CUDA_VISIBLE_DEVICES'] = '6,5,4'
 args = parser.parse_args()
 
 # for tensorboard --logdir runs
@@ -60,7 +60,7 @@ data_set = {x: dataset.JesterImageFolder(x, args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x],
                                   batch_size=args.batch_size,
                                   shuffle=True,
-                                  num_workers=10,
+                                  num_workers=20,
                                   drop_last=False,
                                   pin_memory=True)
                     for x in ['train', 'val']}
