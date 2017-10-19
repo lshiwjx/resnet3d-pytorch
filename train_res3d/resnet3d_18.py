@@ -367,7 +367,7 @@ class DeformResNet3d(nn.Module):
         self.layer20 = DownsampleBlock(64, 128)
         self.layer21 = BasicBlock(128)
         self.layer30 = DownsampleBlock(128, 256)
-        self.layer31 = DeformBasicBlock2(256, 4)
+        self.layer31 = DeformBasicBlock2(256, 2)
         self.layer40 = DownsampleBlock(256, 512)
         self.layer41 = BasicBlock(512)
 

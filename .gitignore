@@ -1,8 +1,6 @@
-.idea/
+/.idea/
 *.t7
 *.state
-runs/
-/result/
-/ego/
-/ucf/
 *.GPU
+/saved/
+/tmp/

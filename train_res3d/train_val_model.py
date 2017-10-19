@@ -1,6 +1,7 @@
 import torch
 from torch.autograd import Variable
 from tensorboard_logger import log_value
+import time
 
 
 def train(model, data_set_loaders, loss_function, optimizer, global_step,
@@ -9,6 +10,7 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
     step = global_step
     for inputs, labels in data_set_loaders:
         # wrap them in Variable
+        s = time.time()
         if use_gpu:
             inputs, labels = Variable(inputs.cuda()), \
                              Variable(labels.cuda())
@@ -32,10 +34,11 @@ def train(model, data_set_loaders, loss_function, optimizer, global_step,
         value, predict_label = torch.max(outputs.data, 1)
         ls = loss.data[0]
         acc = torch.mean((predict_label == labels.data).float())
+        t = time.time() - s
         log_value('train_loss', ls, step)
         log_value('train_acc', acc, step)
-        print('step: {}, loss {:.4f}, acc {:.4f}'.format(step, ls, acc))
-
+        log_value('time', t, step)
+        print('step: {}, loss {:.4f}, acc {:.4f}, time: {}'.format(step, ls, acc, t))
     return step
 
 

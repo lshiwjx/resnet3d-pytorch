@@ -29,7 +29,7 @@ parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 # parser.add_argument('-resize_shape', default=[120, 160])
 parser.add_argument('-crop_shape', default=[100, 100])
 parser.add_argument('-device_id', default=[0])
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 
 args = parser.parse_args()
 
@@ -45,8 +45,8 @@ data_set_classes = data_set.classes
 # show input
 clip, labels = next(iter(data_set_loaders))
 #
-# util.in_batch_show(clip, labels, data_set_classes, 'input batch')
-# util.in_clip_show(clip, labels, data_set_classes, 'input clip')
+util.in_batch_show(clip, labels, data_set_classes, 'input batch')
+util.in_clip_show(clip, labels, data_set_classes, 'input clip')
 
 model = resnet3d_18.DeformResNet3d(args.class_num, args.clip_length, args.crop_shape)
 if args.use_pre_trained_model:

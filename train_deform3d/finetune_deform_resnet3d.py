@@ -28,14 +28,14 @@ parser.add_argument('-lr_patience', default=2)
 parser.add_argument('-lr_threshold', default=0.01)
 parser.add_argument('-lr_delay', default=2)
 
-parser.add_argument('-log_dir', default="./runs/l3b84_120")
+parser.add_argument('-log_dir', default="./runs/l3b42_120")
 parser.add_argument('-num_epoch_per_save', default=4)
-parser.add_argument('-model_saved_name', default='l3b84_120')
+parser.add_argument('-model_saved_name', default='l3b42_120')
 
 parser.add_argument('-use_last_model', default=False)
 parser.add_argument('-last_model', default='.state')
 
-parser.add_argument('-use_pre_trained_model', default=True)
+parser.add_argument('-use_pre_trained_model', default=False)
 parser.add_argument('-pre_trained_model', default='deform-resnet3d-18.state')
 parser.add_argument('-pre_class_num', default=400)
 parser.add_argument('-only_train_classifier', default=False)
@@ -60,7 +60,7 @@ data_set = {x: dataset.JesterImageFolder(x, args) for x in ['train', 'val']}
 data_set_loaders = {x: DataLoader(data_set[x],
                                   batch_size=args.batch_size,
                                   shuffle=True,
-                                  num_workers=20,
+                                  num_workers=2,
                                   drop_last=False,
                                   pin_memory=True)
                     for x in ['train', 'val']}
@@ -84,7 +84,7 @@ params = []
 print('lr for deform: 10*origin')
 for key, value in params_dict.items():
     if key[8:16] == 'conv_off':
-        params += [{'params': [value], 'lr': 10 * args.lr}]
+        params += [{'params': [value], 'lr': 0.01 * args.lr}]
     else:
         params += [{'params': [value], 'lr': args.lr}]
 
@@ -94,14 +94,15 @@ if args.only_train_classifier is True:
         param.requires_grad = False
     if args.pre_class_num != args.class_num:
         model.fc = torch.nn.Linear(512, args.class_num)
-    optimizer = torch.optim.Adam(model.fc.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
-    # optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,weight_decay=args.weight_decay_ratio)
+    # optimizer = torch.optim.Adam(model.fc.parameters(), lr=args.lr, weight_decay=args.weight_decay_ratio)
+    optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,
+                                weight_decay=args.weight_decay_ratio)
 else:
     print('----Train all params with weight decay: ', args.weight_decay_ratio)
     if args.pre_class_num != args.class_num:
         model.fc = torch.nn.Linear(512, args.class_num)
-    optimizer = torch.optim.Adam(params, weight_decay=args.weight_decay_ratio)
-    # optimizer = torch.optim.SGD(model.fc.parameters(), lr=args.lr, momentum=args.momentum,weight_decay=args.weight_decay_ratio)
+    # optimizer = torch.optim.Adam(params, weight_decay=args.weight_decay_ratio)
+    optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay_ratio)
 
 global_step = 0
 # The name for model must be **_**-$(step).state
@@ -143,7 +144,7 @@ for epoch in range(args.max_epoch):
     log_value('val_acc', acc, global_step)
     lr_scheduler.step(acc)
     time_elapsed = time.time() - time_start
-    log_value('time', time_elapsed, global_step)
+    log_value('time_epoch', time_elapsed, global_step)
     lr = optimizer.param_groups[0]['lr']
     log_value('lr', lr, global_step)
     print('validate loss: {:.4f} acc: {:.4f} lr: {}'.format(loss, acc, lr))

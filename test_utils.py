@@ -22,7 +22,7 @@ parser.add_argument('-crop_shape', default=[100, 100])  # must be same for rotat
 parser.add_argument('-mean', default=[0.45, 0.43, 0.41])  # cha[124,108,115]ego[114,123,125]ucf[101,97,90]k[]
 parser.add_argument('-std', default=[0.23, 0.24, 0.23])
 parser.add_argument('-device_id', default=[0])
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 args = parser.parse_args()
 a = args.class_num
