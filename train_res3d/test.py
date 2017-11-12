@@ -3,12 +3,13 @@ from __future__ import print_function, division
 import argparse
 import os
 
-import torch
-from torch.utils.data import DataLoader
-from torch.autograd import Variable
-from data_set import dataset
-from train_res3d import resnet3d_18, train_val_model
 import pandas as pd
+import torch
+from torch.autograd import Variable
+from torch.utils.data import DataLoader
+
+from data_set import dataset
+from model import resnet3d_18
 
 # params
 parser = argparse.ArgumentParser()

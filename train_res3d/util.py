@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def img_show(inp, title=None):
     plt.imshow(inp)
     if title is not None:
@@ -18,6 +19,14 @@ def in_batch_show(clip, classes, data_set_classes, name):
     # chw -> hwc
     out = out.permute(1, 2, 0).numpy()
     img_show(out, title=[data_set_classes[x] for x in classes])
+
+
+def single_show(inp, title):
+    plt.figure(title)
+    inp = (inp - np.min(inp)) / np.max(inp)
+    plt.imshow(inp, cmap=plt.cm.gray)
+    plt.title(title)
+    plt.pause(0.5)
 
 
 def in_clip_show(clip, classes, data_set_classes, name):

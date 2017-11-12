@@ -16,7 +16,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from data_set import dataset
-from train_res3d import resnet3d_18, train_val_model
+from model import resnet3d_18
+from train_res3d import train_val_model
 
 # params
 parser = argparse.ArgumentParser()

@@ -1,5 +1,5 @@
 from torch.utils.ffi import _wrap_function
-from ._deform_conv3d_op import lib as _lib, ffi as _ffi
+from ._deform_conv3dl_op import lib as _lib, ffi as _ffi
 
 __all__ = []
 

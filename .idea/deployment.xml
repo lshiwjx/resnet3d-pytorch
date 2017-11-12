@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" promptOnRemoteOverwrite="CHECK_TIMESTAMP" serverName="172.18.32.66" createEmptyFolders="true" autoUploadExternalChanges="true" notifyRemoteChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" promptOnRemoteOverwrite="CHECK_CONTENT" serverName="172.18.32.66/3d_resnet_pytorch" createEmptyFolders="true" autoUploadExternalChanges="true">
     <serverData>
-      <paths name="172.18.32.66">
+      <paths name="172.18.32.66/3d_resnet_pytorch">
         <serverdata>
           <mappings>
-            <mapping deploy="/" local="$PROJECT_DIR$/../../" web="/" />
+            <mapping deploy="/Project/Pytorch/3d-resnet-pytorch" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

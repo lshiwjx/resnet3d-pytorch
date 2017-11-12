@@ -11,8 +11,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from data_set import dataset
+from model import resnet3d_18
 from train_res3d import train_val_model
-from train_res3d import resnet3d_18
 
 # params
 parser = argparse.ArgumentParser()

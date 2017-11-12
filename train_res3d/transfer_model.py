@@ -2,7 +2,8 @@
     convert model dict to another model dict with different key name 
 """
 import torch
-from train_res3d.resnet3d_18 import DeformResNet3d
+
+from model.resnet3d_18 import DeformResNet3d
 
 model = DeformResNet3d(27, 32, (100, 100))
 # p = list(model.parameters())

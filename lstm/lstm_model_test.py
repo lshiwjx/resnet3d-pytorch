@@ -1,13 +1,11 @@
 import argparse
-import os
 
 import torch
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-from train_res3d import resnet3d_18
+
 from data_set import dataset
-from train_res3d import util
-import numpy as np
+from model import resnet3d_18
 
 # params
 parser = argparse.ArgumentParser()

@@ -1,8 +1,10 @@
-import torch.nn as nn
-import torch
 import math
-from train_deform3d.modules import ConvOffset3d
+
+import torch
+import torch.nn as nn
 from torch.autograd import Variable
+from model.deform_conv3dl_modules import ConvOffset3d
+from torch.nn import functional as f
 
 
 class BasicBlock(nn.Module):
@@ -33,8 +35,7 @@ class BasicBlock(nn.Module):
 class DeformBasicBlock(nn.Module):
     def __init__(self, channel, channel_per_group):
         super(DeformBasicBlock, self).__init__()
-        self.conv_off = nn.Conv3d(channel, channel // channel_per_group * 3 * 27, kernel_size=3, stride=1,
-                                  padding=1, bias=True)
+        self.conv_off = nn.Conv3d(channel, channel // channel_per_group, kernel_size=3, padding=1, stride=1, bias=True)
         self.conv1 = ConvOffset3d(channel, channel, kernel_size=3, stride=1, padding=1,
                                   channel_per_group=channel_per_group)
         self.bn1 = nn.BatchNorm3d(channel)
@@ -57,7 +58,41 @@ class DeformBasicBlock(nn.Module):
         out += residual
         out = self.relu(out)
 
-        return out
+        return out, off
+
+
+class DeformBasicBlock0(nn.Module):
+    def __init__(self, channel, channel_per_group):
+        super(DeformBasicBlock0, self).__init__()
+        self.conv_off1 = nn.Conv3d(channel, channel, kernel_size=5, stride=1,
+                                   padding=2, bias=True)
+        self.conv_off2 = nn.Conv3d(channel, channel // channel_per_group, kernel_size=1, stride=1,
+                                   padding=0, bias=True)
+        self.conv1 = ConvOffset3d(channel, channel, kernel_size=3, stride=1, padding=1,
+                                  channel_per_group=channel_per_group)
+        self.bn1 = nn.BatchNorm3d(channel)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv3d(channel, channel, kernel_size=3, stride=1, padding=1, bias=True)
+        self.bn2 = nn.BatchNorm3d(channel)
+        self.layers = []
+
+    def forward(self, x):
+        residual = x
+
+        off = self.conv_off1(x)
+        off = self.conv_off2(off)
+
+        out = self.conv1(x, off)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        out += residual
+        out = self.relu(out)
+
+        return out, off
 
 
 class DeformBasicBlock1(nn.Module):
@@ -201,6 +236,32 @@ class DownsampleBlock(nn.Module):
         return out
 
 
+class DownsampleBlockSaveL(nn.Module):
+    def __init__(self, channel_in, channel):
+        super(DownsampleBlockSaveL, self).__init__()
+        self.conv1 = nn.Conv3d(channel_in, channel, kernel_size=3, stride=(1, 2, 2), padding=1, bias=True)
+        self.bn1 = nn.BatchNorm3d(channel)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv3d(channel, channel, kernel_size=3, stride=1, padding=1, bias=True)
+        self.bn2 = nn.BatchNorm3d(channel)
+        self.downsample = nn.MaxPool3d(kernel_size=3, stride=(1, 2, 2), padding=1)
+
+    def forward(self, x):
+        residual = self.downsample(x)
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        out += torch.cat((residual, residual), 1)
+        out = self.relu(out)
+
+        return out
+
+
 class DeformDownsampleBlock(nn.Module):
     def __init__(self, channel_in, channel, channel_per_group):
         super(DeformDownsampleBlock, self).__init__()
@@ -305,86 +366,34 @@ class DeformDownsampleBlock2(nn.Module):
 
 
 class ResNet3d(nn.Module):
-    def __init__(self, num_classes, clip_length, crop_shape):
+    def __init__(self, num_classes, clip_length, crop_shape, mode):
         super(ResNet3d, self).__init__()
         self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=3, bias=True)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = nn.Sequential(BasicBlock(64), BasicBlock(64))
-        self.layer2 = nn.Sequential(DownsampleBlock(64, 128), BasicBlock(128))
-        self.layer3 = nn.Sequential(DownsampleBlock(128, 256), BasicBlock(256))
-        self.layer4 = nn.Sequential(DownsampleBlock(256, 512), BasicBlock(512))
-
-        self.avgpool = nn.AvgPool3d(
-            (math.ceil(clip_length // 16), math.ceil(crop_shape[0] / 32), math.ceil(crop_shape[1] / 32)))
-        self.fc = nn.Linear(512, num_classes)
-        self.layers = []
-
-        # init weight
-        for m in self.modules():
-            if isinstance(m, nn.Conv3d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.kernel_size[2] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm3d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-
-    def forward(self, x):
-        self.layers = []
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-        # self.layers.append(x)
-        x = self.layer1(x)
-        # self.layers.append(x)
-        x = self.layer2(x)
-        # self.layers.append(x)
-        x = self.layer3(x)
-        # self.layers.append(x)
-
-        x = self.layer4(x)
-        # self.layers.append(x)
-
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-
-        return x, self.layers
-
-
-class DeformResNet3d(nn.Module):
-    def __init__(self, num_classes, clip_length, crop_shape):
-        super(DeformResNet3d, self).__init__()
-        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=3, bias=True)
-        self.bn1 = nn.BatchNorm3d(64)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=(1, 2, 2), padding=1)
         self.layer10 = BasicBlock(64)
         self.layer11 = BasicBlock(64)
         self.layer20 = DownsampleBlock(64, 128)
         self.layer21 = BasicBlock(128)
         self.layer30 = DownsampleBlock(128, 256)
-        self.layer31 = DeformBasicBlock2(256, 2)
+        self.layer31 = BasicBlock(256)
         self.layer40 = DownsampleBlock(256, 512)
         self.layer41 = BasicBlock(512)
 
         self.avgpool = nn.AvgPool3d(
-            (math.ceil(clip_length // 16), math.ceil(crop_shape[0] / 32), math.ceil(crop_shape[1] / 32)))
+            (math.ceil(clip_length // 8), math.ceil(crop_shape[1] / 32), math.ceil(crop_shape[0] / 32)))
         self.fc = nn.Linear(512, num_classes)
         self.layers = []
 
         # init weight
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.kernel_size[2] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                m.bias.data.zero_()
+                nn.init.kaiming_normal(m.weight.data, mode='fan_out')
+                nn.init.constant(m.bias.data, 0)
             elif isinstance(m, nn.BatchNorm3d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                nn.init.constant(m.weight.data, 1)
+                nn.init.constant(m.bias.data, 0)
 
     def forward(self, x):
         self.layers = []
@@ -400,7 +409,7 @@ class DeformResNet3d(nn.Module):
         x = self.layer21(x)
         # self.layers.append(x)
         x = self.layer30(x)
-        x, y = self.layer31(x)
+        x = self.layer31(x)
         # self.layers = y
 
         x = self.layer40(x)
@@ -410,6 +419,88 @@ class DeformResNet3d(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
+
+        return x, self.layers
+
+
+class DeformResNet3d(nn.Module):
+    def __init__(self, num_classes, clip_length, crop_shape, mode='train'):
+        super(DeformResNet3d, self).__init__()
+        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=3, bias=True)  # 32, 56
+        self.bn1 = nn.BatchNorm3d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool3d(kernel_size=2, stride=(1, 2, 2), padding=1)  # 16, 28
+        self.layer10 = BasicBlock(64)
+        self.layer11 = BasicBlock(64)
+        self.layer20 = DownsampleBlock(64, 128)  # 8, 14
+        self.layer21 = BasicBlock(128)
+        self.layer30 = DownsampleBlock(128, 256)  # 4, 7
+        self.layer31 = DeformBasicBlock0(256, 256)
+        self.layer40 = DownsampleBlock(256, 512)  # 2, 4
+        self.layer41 = BasicBlock(512)
+
+        self.avgpool = nn.AvgPool3d(
+            (math.ceil(clip_length // 8), math.ceil(crop_shape[1] / 32), math.ceil(crop_shape[0] / 32)))
+        self.fc = nn.Linear(512, num_classes)
+        self.layers = []
+        self.mode = mode
+        # init weight
+        for m in self.modules():
+            if isinstance(m, nn.Conv3d):
+                nn.init.kaiming_normal(m.weight.data, mode='fan_out')
+                nn.init.uniform(m.bias.data, -1e-5, 1e-5)
+            elif isinstance(m, nn.BatchNorm3d):
+                nn.init.constant(m.weight.data, 1)
+                nn.init.constant(m.bias.data, 0)
+
+        for m in self.modules():
+            if isinstance(m, DeformBasicBlock0):
+                nn.init.uniform(m.conv_off1.weight.data, -1e-5, 1e-5)
+                nn.init.uniform(m.conv_off2.weight.data, -1e-5, 1e-5)
+                nn.init.uniform(m.conv_off1.bias.data, -1e-5, 1e-5)
+                nn.init.uniform(m.conv_off2.bias.data, -1e-5, 1e-5)
+                # nn.init.constant(m.conv_off1.weight.data,0)
+                # nn.init.constant(m.conv_off2.weight.data, 0)
+                # nn.init.constant(m.conv_off1.bias.data, 0)
+                # nn.init.constant(m.conv_off2.bias.data, 0)
+            elif isinstance(m, DeformBasicBlock):
+                nn.init.uniform(m.conv_off1.weight.data, -1e-5, 1e-5)
+                nn.init.uniform(m.conv_off1.bias.data, -1e-5, 1e-5)
+                nn.init.uniform(m.conv_off2.weight.data, -1e-5, 1e-5)
+                nn.init.uniform(m.conv_off2.bias.data, -1e-5, 1e-5)
+
+    def forward(self, x):
+        self.layers = []
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        if self.mode == 'test':
+            self.layers.append(x)
+        x = self.layer10(x)
+        x = self.layer11(x)
+        if self.mode == 'test':
+            self.layers.append(x)
+        x = self.layer20(x)
+        x = self.layer21(x)
+
+        x = self.layer30(x)
+        if self.mode == 'test':
+            self.layers.append(x)
+        x, y = self.layer31(x)
+        if self.mode == 'test':
+            self.layers.append(x)
+
+        x = self.layer40(x)
+        x = self.layer41(x)
+        if self.mode == 'test':
+            self.layers.append(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        if self.mode == 'test':
+            self.layers.append(y)
 
         return x, self.layers
 
@@ -442,6 +533,10 @@ class ResNet3dFeature(nn.Module):
             elif isinstance(m, nn.BatchNorm3d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
+            elif isinstance(m, ConvOffset3d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.kernel_size[2] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                # m.bias.data.zero_()
 
     def forward(self, x):
         self.layers = []
@@ -485,3 +580,106 @@ class Lstm(nn.Module):
         x = self.fc(x)
 
         return x, self.layers
+
+
+class Mask(nn.Module):
+    def __init__(self, channel, kernel, pad):
+        super(Mask, self).__init__()
+        self.conv1 = nn.Conv3d(channel, channel, kernel, padding=pad)
+        self.conv2 = nn.Conv3d(channel, channel, kernel, padding=pad)
+
+    def forward(self, x):
+        mask = self.conv1(x)
+        mask = f.relu(mask)
+        mask = self.conv2(mask)
+        mask = f.relu(mask)
+        x = (1 + mask) * x
+        return x, mask
+
+
+class EDMask(nn.Module):
+    def __init__(self, channel, kernel, pad):
+        super(EDMask, self).__init__()
+        self.conv1 = nn.Conv3d(channel, channel, kernel, padding=pad)
+        self.conv2 = nn.Conv3d(channel, channel, kernel, padding=pad)
+        # self.conv3 = nn.Conv3d(channel, 1, kernel_size=(3,1,1), padding=(1,0,0),stride=(2,1,1))
+
+    def forward(self, x):
+        mask = self.conv1(x)
+        mask = f.relu(mask)
+        mask = f.max_pool3d(mask, 2, stride=2)
+        mask = self.conv2(mask)
+        mask = f.relu(mask)
+        mask = f.upsample(mask, scale_factor=2)
+        x = (1 + mask) * x
+        mask = f.max_pool3d(mask, (2, 1, 1), stride=(2, 1, 1))
+        return x, mask
+
+
+class ResNet3dMask(nn.Module):
+    def __init__(self, num_classes, clip_length, crop_shape, mode):
+        super(ResNet3dMask, self).__init__()
+        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=3, bias=True)
+        self.bn1 = nn.BatchNorm3d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.mask1 = EDMask(64, 3, 1)
+        self.maxpool = nn.MaxPool3d(kernel_size=3, stride=2, padding=1)
+        self.layer10 = BasicBlock(64)
+        self.layer11 = BasicBlock(64)
+        self.mask2 = EDMask(64, 3, 1)
+        self.layer20 = DownsampleBlock(64, 128)
+        self.layer21 = BasicBlock(128)
+        self.layer30 = DownsampleBlock(128, 256)
+        self.layer31 = BasicBlock(256)
+        self.layer40 = DownsampleBlock(256, 512)
+        self.layer41 = BasicBlock(512)
+        self.mode = mode
+
+        self.avgpool = nn.AvgPool3d(
+            (math.ceil(clip_length // 16), math.ceil(crop_shape[1] / 32), math.ceil(crop_shape[0] / 32)))
+        self.fc = nn.Linear(512, num_classes)
+        self.layers = []
+
+        # init weight
+        for m in self.modules():
+            if isinstance(m, nn.Conv3d):
+                nn.init.kaiming_normal(m.weight.data, mode='fan_out')
+                nn.init.constant(m.bias.data, 0)
+            elif isinstance(m, nn.BatchNorm3d):
+                nn.init.constant(m.weight.data, 1)
+                nn.init.constant(m.bias.data, 0)
+
+    def forward(self, x):
+        self.layers = []
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x, mask1 = self.mask1(x)
+        mask1 = f.upsample(mask1, scale_factor=2)
+        x = self.maxpool(x)
+
+        # self.layers.append(x)
+        x = self.layer10(x)
+        x = self.layer11(x)
+        x, mask2 = self.mask2(x)
+        mask2 = f.upsample(mask2, scale_factor=2)
+        mask2 = f.upsample(mask2, scale_factor=2)
+        # self.layers.append(x)
+        x = self.layer20(x)
+        x = self.layer21(x)
+        # self.layers.append(x)
+        x = self.layer30(x)
+        x = self.layer31(x)
+        # self.layers = y
+
+        x = self.layer40(x)
+        x = self.layer41(x)
+        # self.layers.append(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+
+        mask = (mask1 + mask2) / 2
+        mask = torch.mean(mask, 1)
+        return mask, x, self.layers
